@@ -31,25 +31,26 @@ const Renderer = {
       ctx.fillRect(px, HEADER_HEIGHT, panelWidth, CANVAS_SIZE);
 
       const sy = panelTop;
+      const searchX = px + (panelWidth - CARD_WIDTH) / 2;
       ctx.fillStyle = searchFocused ? '#fff' : 'rgba(255,255,255,0.15)';
-      ctx.fillRect(px + 4, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
+      ctx.fillRect(searchX, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
       ctx.strokeStyle = searchFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
       ctx.lineWidth = searchFocused ? 2 : 1;
-      ctx.strokeRect(px + 4, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
+      ctx.strokeRect(searchX, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
 
       ctx.fillStyle = searchFocused ? '#000' : 'rgba(255,255,255,0.5)';
-      ctx.font = '14px "Microsoft YaHei", Arial';
-      ctx.textAlign = 'left';
+      ctx.font = '16px "Microsoft YaHei", Arial';
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const displayText = searchText || '搜索角色...';
-      ctx.fillText(displayText, px + 10, sy + SEARCH_BOX_HEIGHT / 2);
+      ctx.fillText(displayText, searchX + CARD_WIDTH / 2, sy + SEARCH_BOX_HEIGHT / 2);
 
       if (searchFocused) {
         const tw = ctx.measureText(searchText).width;
-        const cursorX = px + 10 + tw;
+        const cursorX = searchX + CARD_WIDTH / 2 + tw / 2;
         if (Math.floor(Date.now() / 500) % 2 === 0) {
           ctx.fillStyle = '#000';
-          ctx.fillRect(cursorX, sy + 6, 2, SEARCH_BOX_HEIGHT - 12);
+          ctx.fillRect(cursorX, sy + 8, 2, SEARCH_BOX_HEIGHT - 16);
         }
       }
 
@@ -58,19 +59,20 @@ const Renderer = {
         const config = filtered[i];
         const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP);
         const inField = fieldIds.includes(config.id);
+        const cardX = px + (panelWidth - CARD_WIDTH) / 2;
 
         ctx.fillStyle = inField ? 'rgba(100,100,100,0.5)' : 'rgba(255,255,255,0.1)';
-        ctx.fillRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
+        ctx.fillRect(cardX, cy, CARD_WIDTH, CARD_HEIGHT);
 
         if (!inField) {
           ctx.strokeStyle = 'rgba(255,255,255,0.3)';
           ctx.lineWidth = 1;
-          ctx.strokeRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
+          ctx.strokeRect(cardX, cy, CARD_WIDTH, CARD_HEIGHT);
         }
 
-        const imgSize = 85;
-        const imgX = px + 8 + (CARD_WIDTH - imgSize) / 2;
-        const imgY = cy + 5;
+        const imgSize = 100;
+        const imgX = cardX + (CARD_WIDTH - imgSize) / 2;
+        const imgY = cy + 6;
         const image = CharacterImages[config.imageKey];
 
         if (image && image.complete && image.naturalWidth > 0) {
@@ -81,15 +83,15 @@ const Renderer = {
         } else {
           ctx.fillStyle = inField ? '#666' : config.color;
           ctx.beginPath();
-          ctx.arc(px + CARD_WIDTH / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+          ctx.arc(cardX + CARD_WIDTH / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
           ctx.fill();
         }
 
         ctx.fillStyle = inField ? '#888' : '#fff';
-        ctx.font = 'bold 11px "Microsoft YaHei", Arial';
+        ctx.font = 'bold 14px "Microsoft YaHei", Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(config.name, px + CARD_WIDTH / 2, imgY + imgSize + 3);
+        ctx.fillText(config.name, cardX + CARD_WIDTH / 2, imgY + imgSize + 5);
       }
 
       if (filtered.length === 0) {

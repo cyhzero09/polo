@@ -1,17 +1,17 @@
 const CANVAS_SIZE = 750;
 const HEADER_HEIGHT = 45;
 const FOOTER_HEIGHT = 60;
-const PANEL_WIDTH = 160;
-const PANEL_GAP = 30;
+const PANEL_WIDTH = 200;
+const PANEL_GAP = 60;
 const TOTAL_WIDTH = PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP + PANEL_WIDTH;
 const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
-const SEARCH_BOX_HEIGHT = 32;
-const CARD_HEIGHT = 120;
-const CARD_GAP = 10;
-const CARD_WIDTH = PANEL_WIDTH - 16;
+const SEARCH_BOX_HEIGHT = 36;
+const CARD_HEIGHT = 150;
+const CARD_GAP = 12;
+const CARD_WIDTH = PANEL_WIDTH - 20;
 
 const canvas = document.getElementById('game-canvas');
 canvas.width = TOTAL_WIDTH;
@@ -131,7 +131,8 @@ const Game = {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
       for (let i = 0; i < filtered.length; i++) {
         const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
-        if (mx >= px && mx <= px + CARD_WIDTH && my >= cy && my <= cy + CARD_HEIGHT) {
+        const cardX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
+        if (mx >= cardX && mx <= cardX + CARD_WIDTH && my >= cy && my <= cy + CARD_HEIGHT) {
           return CHARACTER_POOL.indexOf(filtered[i]);
         }
       }
@@ -143,7 +144,8 @@ const Game = {
     const sy = HEADER_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
-      if (mx >= px + 4 && mx <= px + CARD_WIDTH + 4 && my >= sy && my <= sy + SEARCH_BOX_HEIGHT) {
+      const searchX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
+      if (mx >= searchX && mx <= searchX + CARD_WIDTH && my >= sy && my <= sy + SEARCH_BOX_HEIGHT) {
         return true;
       }
     }
