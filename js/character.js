@@ -29,7 +29,7 @@ class Character {
     this.burstCooldownTimer = 0;
     this.burstMax = 6;
     this.burstCooldown = 2;
-    this.fireInterval = 0.1;
+    this.fireInterval = 0.15;
     this.fireTimer = 0;
     this.burstDirection = 0;
 

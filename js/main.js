@@ -162,6 +162,9 @@ const Game = {
       const angle = Math.random() * Math.PI * 2;
       ch.vx = Math.cos(angle) * SPEED;
       ch.vy = Math.sin(angle) * SPEED;
+      if (ch.skillType === 'bullet') {
+        ch.burstCooldownTimer = ch.burstCooldown;
+      }
     }
   },
 
