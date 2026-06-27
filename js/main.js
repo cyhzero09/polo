@@ -20,6 +20,8 @@ const ctx = canvas.getContext('2d');
 
 const BeerSound = new Audio('audio/alababier.mp3');
 const YahuSound = new Audio('audio/yahu.mp3');
+const EndingSound = new Audio('audio/dang.mp3');
+EndingSound.volume = 0.2;
 
 const CharacterImages = {
   lady: null,
@@ -131,6 +133,7 @@ const Game = {
   drag: null,
   searchText: '',
   searchFocused: false,
+  endingPlayed: false,
 
   init() {
     this.fieldCharacters = [];
@@ -142,6 +145,7 @@ const Game = {
     this.drag = null;
     this.searchText = '';
     this.searchFocused = false;
+    this.endingPlayed = false;
   },
 
   getFilteredPool() {
@@ -348,8 +352,14 @@ const Game = {
     this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
 
     const alive = this.fieldCharacters.filter(c => c.alive);
-    if (alive.length <= 1) {
+    if (alive.length <= 1 && this.state !== 'GAME_OVER') {
       this.state = 'GAME_OVER';
+      this.endingPlayed = false;
+    }
+    if (this.state === 'GAME_OVER' && !this.endingPlayed) {
+      this.endingPlayed = true;
+      EndingSound.currentTime = 0;
+      EndingSound.play().catch(() => {});
     }
   },
 
