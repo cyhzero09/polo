@@ -18,6 +18,8 @@ canvas.width = TOTAL_WIDTH;
 canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
 const ctx = canvas.getContext('2d');
 
+const BeerSound = new Audio('audio/alababier.mp3');
+
 const CharacterImages = {
   lady: null,
   worker: null,
@@ -302,6 +304,8 @@ const Game = {
         break;
       case 'beer':
         proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.id);
+        BeerSound.currentTime = 0;
+        BeerSound.play().catch(() => {});
         break;
     }
     if (proj) {
