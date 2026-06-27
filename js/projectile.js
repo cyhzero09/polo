@@ -1,7 +1,7 @@
 const NAIL_SPEED = 400;
 const BRIEFCASE_SPEED = 600;
 const PAPER_SPEED = 1200;
-const NAIL_DAMAGE = 150;
+const NAIL_DAMAGE = 100;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
 
