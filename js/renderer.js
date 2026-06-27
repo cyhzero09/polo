@@ -123,7 +123,12 @@ const Renderer = {
     const r = proj.radius;
 
     if (proj.image && proj.image.complete && proj.image.naturalWidth > 0) {
-      ctx.drawImage(proj.image, x - r, y - r, r * 2, r * 2);
+      const imgW = proj.image.naturalWidth;
+      const imgH = proj.image.naturalHeight;
+      const scale = (r * 2) / Math.max(imgW, imgH);
+      const dw = imgW * scale;
+      const dh = imgH * scale;
+      ctx.drawImage(proj.image, x - dw / 2, y - dh / 2, dw, dh);
     } else if (proj.type === 'paper') {
       ctx.fillStyle = proj.color;
       ctx.fillRect(x - r, y - r * 0.5, r * 2, r);
