@@ -130,7 +130,13 @@ const Renderer = {
     const size = ch.displaySize;
     const half = size / 2;
 
-    if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+    const currentFrame = ch.animFrames && ch.animFrames[ch.animIndex] && ch.animFrames[ch.animIndex].complete && ch.animFrames[ch.animIndex].naturalWidth > 0
+      ? ch.animFrames[ch.animIndex]
+      : null;
+
+    if (currentFrame) {
+      ctx.drawImage(currentFrame, x - half, y - half, size, size);
+    } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
     } else {
       ctx.save();
@@ -234,7 +240,15 @@ const Renderer = {
       const imgH = proj.image.naturalHeight;
       const dw = r * 2;
       const dh = (imgH / imgW) * dw;
-      ctx.drawImage(proj.image, x - dw / 2, y - dh / 2, dw, dh);
+      if (proj.type === 'beer' && proj.rotation) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(proj.rotation * Math.PI / 180);
+        ctx.drawImage(proj.image, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      } else {
+        ctx.drawImage(proj.image, x - dw / 2, y - dh / 2, dw, dh);
+      }
     } else if (proj.type === 'paper') {
       ctx.fillStyle = proj.color;
       ctx.fillRect(x - r, y - r * 0.5, r * 2, r);

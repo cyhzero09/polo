@@ -21,10 +21,22 @@ const ctx = canvas.getContext('2d');
 const CharacterImages = {
   lady: null,
   worker: null,
+  beermaster: null,
+  beermasterFrames: [],
   loaded: false
 };
 
 (function loadImages() {
+  let loaded = 0;
+  const total = 12;
+  function checkAllLoaded() {
+    loaded++;
+    if (loaded < total) return;
+    CharacterImages.loaded = true;
+    Game.init();
+    requestAnimationFrame(gameLoop);
+  }
+
   const ladyImg = new Image();
   ladyImg.src = 'picture/gracewoman.png';
   ladyImg.onload = () => { CharacterImages.lady = ladyImg; checkAllLoaded(); };
@@ -35,13 +47,17 @@ const CharacterImages = {
   workerImg.onload = () => { CharacterImages.worker = workerImg; checkAllLoaded(); };
   workerImg.onerror = () => { checkAllLoaded(); };
 
-  let loaded = 0;
-  function checkAllLoaded() {
-    loaded++;
-    if (loaded < 2) return;
-    CharacterImages.loaded = true;
-    Game.init();
-    requestAnimationFrame(gameLoop);
+  const beerMasterImg = new Image();
+  beerMasterImg.src = 'picture/beermaster/1.png';
+  beerMasterImg.onload = () => { CharacterImages.beermaster = beerMasterImg; checkAllLoaded(); };
+  beerMasterImg.onerror = () => { checkAllLoaded(); };
+
+  for (let i = 1; i <= 10; i++) {
+    const frame = new Image();
+    frame.src = `picture/beermaster/${i}.png`;
+    const idx = i - 1;
+    frame.onload = () => { CharacterImages.beermasterFrames[idx] = frame; checkAllLoaded(); };
+    frame.onerror = () => { checkAllLoaded(); };
   }
 })();
 
@@ -65,6 +81,17 @@ const CHARACTER_POOL = [
     octagonRadius: 100,
     skillType: 'briefcase',
     imageKey: 'worker'
+  },
+  {
+    id: 3,
+    name: '啤酒大师',
+    color: '#D4A017',
+    radius: 94,
+    displaySize: 188,
+    octagonRadius: 100,
+    skillType: 'beer',
+    imageKey: 'beermaster',
+    animKey: 'beermasterFrames'
   }
 ];
 
@@ -273,6 +300,9 @@ const Game = {
       case 'briefcase':
         proj = createBriefcase(ch.x, ch.y, dx, dy, ch.id);
         break;
+      case 'beer':
+        proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.id);
+        break;
     }
     if (proj) {
       this.projectiles.push(proj);
@@ -418,6 +448,7 @@ canvas.addEventListener('mouseup', (e) => {
     if (Game.isInField(mx, my) && Game.fieldCharacters.length < 2) {
       const config = drag.config;
       const image = CharacterImages[config.imageKey];
+      const animFrames = config.animKey ? CharacterImages[config.animKey] : null;
       const ch = new Character({
         id: config.id,
         name: config.name,
@@ -426,7 +457,8 @@ canvas.addEventListener('mouseup', (e) => {
         displaySize: config.displaySize,
         octagonRadius: config.octagonRadius,
         skillType: config.skillType,
-        image: image
+        image: image,
+        animFrames: animFrames
       });
       ch.x = mx;
       ch.y = my;

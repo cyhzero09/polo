@@ -5,11 +5,18 @@ const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
 
+const BEER_SPEED = 450;
+const BEER_DAMAGE = 80;
+const BEER_ANGLE_OFFSET = 0.45;
+
 const NailImage = new Image();
 NailImage.src = 'picture/nail.png';
 
 const BriefcaseImage = new Image();
 BriefcaseImage.src = 'picture/briefcase.png';
+
+const BeerBottleImage = new Image();
+BeerBottleImage.src = 'picture/beer.png';
 
 class Projectile {
   constructor(config) {
@@ -24,11 +31,15 @@ class Projectile {
     this.color = config.color;
     this.image = config.image || null;
     this.alive = true;
+    this.rotation = config.rotation || 0;
   }
 
   update(dt) {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+    if (this.type === 'beer') {
+      this.rotation -= 45 * dt;
+    }
   }
 }
 
@@ -75,6 +86,24 @@ function createPaper(x, y, dirX, dirY, ownerId) {
     type: 'paper',
     radius: 27,
     color: '#ffffff'
+  });
+}
+
+function createBeerBottle(x, y, dirX, dirY, ownerId) {
+  const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+  const baseAngle = Math.atan2(dirY, dirX);
+  const finalAngle = baseAngle + (Math.random() - 0.5) * 2 * BEER_ANGLE_OFFSET;
+  return new Projectile({
+    x, y,
+    vx: Math.cos(finalAngle) * BEER_SPEED,
+    vy: Math.sin(finalAngle) * BEER_SPEED,
+    damage: BEER_DAMAGE,
+    ownerId,
+    type: 'beer',
+    radius: 30,
+    color: '#D4A017',
+    image: BeerBottleImage,
+    rotation: 0
   });
 }
 
