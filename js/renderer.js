@@ -299,11 +299,8 @@ const Renderer = {
     } else if (proj.type === 'bullet') {
       ctx.save();
       ctx.globalAlpha = proj.alpha;
-      ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 12;
+      ctx.strokeStyle = '#FFF8DC';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(proj.x, proj.y);
       ctx.lineTo(proj.endX, proj.y);
