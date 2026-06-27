@@ -277,9 +277,14 @@ const Renderer = {
     ctx.restore();
   },
 
-  drawVSInfo(ctx, w, characters) {
+  drawVSInfo(ctx, w, characters, winner) {
     if (!characters || characters.length < 2) return;
-    const text = `${characters[0].name}  VS  ${characters[1].name}`;
+    let text;
+    if (winner) {
+      text = `${winner.name} 获胜！`;
+    } else {
+      text = `${characters[0].name}  VS  ${characters[1].name}`;
+    }
     const fontSize = 30;
     ctx.font = `bold ${fontSize}px "Microsoft YaHei", Arial`;
     ctx.textAlign = 'center';
@@ -293,7 +298,7 @@ const Renderer = {
     ctx.lineJoin = 'round';
     ctx.strokeText(text, tx, ty);
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = winner ? '#FFD700' : '#ffffff';
     ctx.fillText(text, tx, ty);
   }
 };

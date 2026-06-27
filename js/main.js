@@ -209,7 +209,24 @@ const Game = {
       return;
     }
 
-    if (this.state !== 'PLAYING') return;
+    if (this.state !== 'PLAYING' && this.state !== 'GAME_OVER') return;
+
+    if (this.state === 'GAME_OVER') {
+      for (const ch of this.fieldCharacters) {
+        if (!ch.alive) continue;
+        ch.update(dt);
+        Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y);
+      }
+      for (let i = 0; i < this.fieldCharacters.length; i++) {
+        for (let j = i + 1; j < this.fieldCharacters.length; j++) {
+          const c1 = this.fieldCharacters[i];
+          const c2 = this.fieldCharacters[j];
+          if (!c1.alive || !c2.alive) continue;
+          Physics.resolveCharacterCollision(c1, c2);
+        }
+      }
+      return;
+    }
 
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
@@ -359,9 +376,9 @@ const Game = {
         UI.drawPausedOverlay(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
         break;
       case 'GAME_OVER':
-        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters);
         const winner = this.fieldCharacters.find(c => c.alive) || null;
-        UI.drawGameOver(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, winner);
+        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters, winner);
+        UI.drawRestartHint(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
         break;
     }
   }
