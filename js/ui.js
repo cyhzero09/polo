@@ -66,7 +66,7 @@ const UI = {
 
   drawGameOver(ctx, w, h, winner) {
     ctx.fillStyle = 'rgba(5, 12, 25, 0.78)';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, HEADER_HEIGHT, w, h - HEADER_HEIGHT);
 
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 40px "Microsoft YaHei", Arial';
