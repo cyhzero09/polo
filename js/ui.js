@@ -14,7 +14,7 @@ const UI = {
     ctx.font = 'bold 28px "Microsoft YaHei", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('暂停', w / 2, h - FOOTER_HEIGHT / 2);
+    ctx.fillText('点击暂停游戏', w / 2, h - FOOTER_HEIGHT / 2);
   },
 
   drawPausedOverlay(ctx, w, h) {
