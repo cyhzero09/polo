@@ -126,11 +126,13 @@ const Game = {
 
   getPoolIndexAt(mx, my) {
     const filtered = this.getFilteredPool();
-    const panelTop = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
+    const contentHeight = SEARCH_BOX_HEIGHT + 10 + filtered.length * (CARD_HEIGHT + CARD_GAP);
+    const startY = HEADER_HEIGHT + (CANVAS_SIZE - contentHeight) / 2;
+    const cardTop = startY + SEARCH_BOX_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
       for (let i = 0; i < filtered.length; i++) {
-        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
+        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP);
         if (mx >= px && mx <= px + CARD_WIDTH && my >= cy && my <= cy + CARD_HEIGHT) {
           return CHARACTER_POOL.indexOf(filtered[i]);
         }
@@ -140,10 +142,12 @@ const Game = {
   },
 
   getSearchBoxAt(mx, my) {
-    const sy = HEADER_HEIGHT + 10;
+    const filtered = this.getFilteredPool();
+    const contentHeight = SEARCH_BOX_HEIGHT + 10 + filtered.length * (CARD_HEIGHT + CARD_GAP);
+    const startY = HEADER_HEIGHT + (CANVAS_SIZE - contentHeight) / 2;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
-      if (mx >= px + 4 && mx <= px + CARD_WIDTH + 4 && my >= sy && my <= sy + SEARCH_BOX_HEIGHT) {
+      if (mx >= px + 4 && mx <= px + CARD_WIDTH + 4 && my >= startY && my <= startY + SEARCH_BOX_HEIGHT) {
         return true;
       }
     }
