@@ -4,6 +4,9 @@ const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
 
+const NailImage = new Image();
+NailImage.src = 'picture/nail.png';
+
 class Projectile {
   constructor(config) {
     this.x = config.x;
@@ -15,6 +18,7 @@ class Projectile {
     this.type = config.type;
     this.radius = config.radius;
     this.color = config.color;
+    this.image = config.image || null;
     this.alive = true;
   }
 
@@ -33,8 +37,9 @@ function createNail(x, y, dirX, dirY, ownerId) {
     damage: NAIL_DAMAGE,
     ownerId,
     type: 'nail',
-    radius: 6,
-    color: '#FF6B9D'
+    radius: 12,
+    color: '#FF6B9D',
+    image: NailImage
   });
 }
 

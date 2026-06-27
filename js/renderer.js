@@ -122,16 +122,20 @@ const Renderer = {
     const y = proj.y;
     const r = proj.radius;
 
-    ctx.save();
-    ctx.shadowColor = proj.color;
-    ctx.shadowBlur = 8;
+    if (proj.image && proj.image.complete && proj.image.naturalWidth > 0) {
+      ctx.drawImage(proj.image, x - r, y - r, r * 2, r * 2);
+    } else {
+      ctx.save();
+      ctx.shadowColor = proj.color;
+      ctx.shadowBlur = 8;
 
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = proj.color;
-    ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = proj.color;
+      ctx.fill();
 
-    ctx.restore();
+      ctx.restore();
+    }
   },
 
   drawDamageText(ctx, ft) {
