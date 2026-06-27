@@ -40,7 +40,7 @@ function createNail(x, y, dirX, dirY, ownerId) {
     damage: NAIL_DAMAGE,
     ownerId,
     type: 'nail',
-    radius: 12,
+    radius: 24,
     color: '#FF6B9D',
     image: NailImage
   });
@@ -55,7 +55,7 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
     damage: BRIEFCASE_DAMAGE,
     ownerId,
     type: 'briefcase',
-    radius: 20,
+    radius: 40,
     color: '#4ECDC4',
     image: BriefcaseImage
   });
@@ -70,7 +70,7 @@ function createPaper(x, y, dirX, dirY, ownerId) {
     damage: PAPER_DAMAGE,
     ownerId,
     type: 'paper',
-    radius: 6,
+    radius: 12,
     color: '#ffffff'
   });
 }
