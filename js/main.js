@@ -297,11 +297,8 @@ canvas.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const btnX = CANVAS_SIZE / 2 - 50;
-    const btnY = CANVAS_SIZE + HEADER_HEIGHT + 10;
-    const btnW = 100;
-    const btnH = 40;
-    if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+    const btnY = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT / 2;
+    if (y >= btnY - 20 && y <= btnY + 20 && x >= CANVAS_SIZE / 2 - 60 && x <= CANVAS_SIZE / 2 + 60) {
       Game.togglePause();
     }
   }
