@@ -50,6 +50,10 @@ class Character {
       this.hp = 0;
       this.alive = false;
     }
+    if (typeof AttackSound !== 'undefined') {
+      AttackSound.currentTime = 0;
+      AttackSound.play().catch(() => {});
+    }
   }
 
   update(dt) {

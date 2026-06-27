@@ -20,6 +20,8 @@ const ctx = canvas.getContext('2d');
 
 const BeerSound = new Audio('audio/alababier.mp3');
 const YahuSound = new Audio('audio/yahu.mp3');
+const AttackSound = new Audio('audio/attack.mp3');
+AttackSound.volume = 0.5;
 const EndingSound = new Audio('audio/dang.mp3');
 EndingSound.volume = 0.2;
 
