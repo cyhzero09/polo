@@ -68,7 +68,7 @@ const Renderer = {
           ctx.strokeRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
         }
 
-        const imgSize = 60;
+        const imgSize = 70;
         const imgX = px + 8 + (CARD_WIDTH - imgSize) / 2;
         const imgY = cy + 5;
         const image = CharacterImages[config.imageKey];
