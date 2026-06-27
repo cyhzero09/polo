@@ -22,8 +22,7 @@ const Renderer = {
     const q = searchText.toLowerCase();
     const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
 
-    const contentHeight = SEARCH_BOX_HEIGHT + 10 + filtered.length * (CARD_HEIGHT + CARD_GAP);
-    const startY = HEADER_HEIGHT + (CANVAS_SIZE - contentHeight) / 2;
+    const panelTop = HEADER_HEIGHT + 10;
 
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : panelWidth + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
@@ -31,7 +30,7 @@ const Renderer = {
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(px, HEADER_HEIGHT, panelWidth, CANVAS_SIZE);
 
-      const sy = startY;
+      const sy = panelTop;
       ctx.fillStyle = searchFocused ? '#fff' : 'rgba(255,255,255,0.15)';
       ctx.fillRect(px + 4, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
       ctx.strokeStyle = searchFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
@@ -54,7 +53,7 @@ const Renderer = {
         }
       }
 
-      const cardTop = startY + SEARCH_BOX_HEIGHT + 10;
+      const cardTop = panelTop + SEARCH_BOX_HEIGHT + 10;
       for (let i = 0; i < filtered.length; i++) {
         const config = filtered[i];
         const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP);
