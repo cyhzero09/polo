@@ -9,6 +9,43 @@ const UI = {
     ctx.fillText('点击开始游戏', w / 2, h - FOOTER_HEIGHT / 2);
   },
 
+  drawPauseButton(ctx, w, h) {
+    const btnX = w / 2 - 50;
+    const btnY = h - FOOTER_HEIGHT + 10;
+    const btnW = 100;
+    const btnH = 40;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px "Microsoft YaHei", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('暂停', w / 2, btnY + btnH / 2);
+  },
+
+  drawPausedOverlay(ctx, w, h) {
+    ctx.fillStyle = 'rgba(5, 12, 25, 0.5)';
+    ctx.fillRect(0, HEADER_HEIGHT, w, CANVAS_SIZE);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 60px "Microsoft YaHei", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('已暂停', w / 2, HEADER_HEIGHT + CANVAS_SIZE / 2 - 20);
+
+    const alpha = 0.55 + Math.sin(Date.now() / 600) * 0.35;
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.font = 'bold 28px "Microsoft YaHei", Arial';
+    ctx.fillText('点击暂停按钮继续', w / 2, HEADER_HEIGHT + CANVAS_SIZE / 2 + 40);
+
+    this.drawPauseButton(ctx, w, h);
+  },
+
   drawCountdown(ctx, w, h, num) {
     ctx.fillStyle = 'rgba(5, 12, 25, 0.5)';
     ctx.fillRect(0, HEADER_HEIGHT, w, CANVAS_SIZE);

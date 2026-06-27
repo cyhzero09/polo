@@ -102,6 +102,14 @@ const Game = {
     this.start();
   },
 
+  togglePause() {
+    if (this.state === 'PLAYING') {
+      this.state = 'PAUSED';
+    } else if (this.state === 'PAUSED') {
+      this.state = 'PLAYING';
+    }
+  },
+
   update(dt) {
     if (this.state === 'COUNTDOWN') {
       this.countdown -= dt;
@@ -249,6 +257,11 @@ const Game = {
         break;
       case 'PLAYING':
         Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
+        UI.drawPauseButton(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
+        break;
+      case 'PAUSED':
+        Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
+        UI.drawPausedOverlay(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
         break;
       case 'GAME_OVER':
         Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
@@ -275,8 +288,21 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
-canvas.addEventListener('click', () => {
+canvas.addEventListener('click', (e) => {
   if (Game.state === 'INIT' || Game.state === 'GAME_OVER') {
     Game.restart();
+    return;
+  }
+  if (Game.state === 'PLAYING' || Game.state === 'PAUSED') {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const btnX = CANVAS_SIZE / 2 - 50;
+    const btnY = CANVAS_SIZE + HEADER_HEIGHT + 10;
+    const btnW = 100;
+    const btnH = 40;
+    if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+      Game.togglePause();
+    }
   }
 });
