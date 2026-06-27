@@ -5,7 +5,7 @@ const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
 
-const BEER_SPEED = 450;
+const BEER_SPEED = 900;
 const BEER_DAMAGE = 80;
 const BEER_ANGLE_OFFSET = 0.45;
 
@@ -38,7 +38,7 @@ class Projectile {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     if (this.type === 'beer') {
-      this.rotation -= 45 * dt;
+      this.rotation -= 450 * dt;
     }
   }
 }
