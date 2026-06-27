@@ -59,11 +59,11 @@ const Renderer = {
   },
 
   drawCrossHealthBar(ctx, x, barBottomY, hp, maxHp) {
-    const barW = 20;
-    const barH = 70;
-    const armW = 70;
-    const armH = 20;
-    const gap = -15;
+    const barW = 28;
+    const barH = 96;
+    const armW = 96;
+    const armH = 28;
+    const gap = -20;
 
     const topY = barBottomY - barH - gap;
 
@@ -105,14 +105,14 @@ const Renderer = {
     ctx.fillStyle = fillColor;
     ctx.fillRect(x - armW / 2, armCenterY + armH / 2 - armFillH, armW, armFillH);
 
-    ctx.font = '22px Arial';
+    ctx.font = 'bold 30px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#444';
     ctx.fillText(Math.ceil(hp), x, topY + barH / 2);
 
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     crossPath(ctx);
     ctx.stroke();
   },
