@@ -1,12 +1,13 @@
 const CANVAS_SIZE = 750;
 const HEADER_HEIGHT = 45;
+const FOOTER_HEIGHT = 60;
 const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = 0;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
 const canvas = document.getElementById('game-canvas');
 canvas.width = CANVAS_SIZE;
-canvas.height = CANVAS_SIZE + HEADER_HEIGHT;
+canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
 const ctx = canvas.getContext('2d');
 
 const CharacterImages = {
@@ -221,9 +222,8 @@ const Game = {
   },
 
   render() {
-    Renderer.clear(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT);
+    Renderer.clear(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
-    Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
 
     for (const ch of this.characters) {
       if (!ch.alive) continue;
@@ -241,14 +241,19 @@ const Game = {
 
     switch (this.state) {
       case 'INIT':
-        UI.drawStartScreen(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, this.characters);
+        UI.drawStartScreen(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, this.characters);
         break;
       case 'COUNTDOWN':
-        UI.drawCountdown(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, this.countdown);
+        Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
+        UI.drawCountdown(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, this.countdown);
+        break;
+      case 'PLAYING':
+        Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
         break;
       case 'GAME_OVER':
+        Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
         const winner = this.characters.find(c => c.alive) || null;
-        UI.drawGameOver(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, winner);
+        UI.drawGameOver(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, winner);
         break;
     }
   }

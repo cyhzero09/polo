@@ -1,49 +1,12 @@
 const UI = {
 
   drawStartScreen(ctx, w, h, characters) {
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 46px "Microsoft YaHei", Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('弹球对战', w / 2, h / 2 - 75);
-
-    ctx.font = '16px "Microsoft YaHei", Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-
-    if (characters && characters.length > 0) {
-      let y = h / 2 - 20;
-      for (const ch of characters) {
-        if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(w / 2 - 70, y, 14, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(ch.image, w / 2 - 84, y - 14, 28, 28);
-          ctx.restore();
-        } else {
-          ctx.fillStyle = ch.color;
-          ctx.beginPath();
-          ctx.arc(w / 2 - 70, y, 10, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round';
-        ctx.textAlign = 'left';
-        const infoText = `${ch.name}  HP:${ch.maxHp}  ${ch.skillType === 'nail' ? '指甲攻击(150伤害)' : '公文包(50+分裂纸10x8)'}`;
-        ctx.strokeText(infoText, w / 2 - 48, y);
-        ctx.fillText(infoText, w / 2 - 48, y);
-        y += 30;
-      }
-    }
-
     const alpha = 0.55 + Math.sin(Date.now() / 600) * 0.35;
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.font = '20px "Microsoft YaHei", Arial';
+    ctx.font = 'bold 28px "Microsoft YaHei", Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('点击开始游戏', w / 2, h / 2 + 100);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('点击开始游戏', w / 2, h - FOOTER_HEIGHT / 2);
   },
 
   drawCountdown(ctx, w, h, num) {
@@ -110,8 +73,8 @@ const UI = {
 
     const alpha = 0.55 + Math.sin(Date.now() / 600) * 0.35;
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.font = '20px "Microsoft YaHei", Arial';
+    ctx.font = 'bold 28px "Microsoft YaHei", Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('点击重新开始', w / 2, h / 2 + 90);
+    ctx.fillText('点击重新开始', w / 2, h - FOOTER_HEIGHT / 2);
   }
 };
