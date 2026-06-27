@@ -1,16 +1,16 @@
 const CANVAS_SIZE = 750;
 const HEADER_HEIGHT = 45;
 const FOOTER_HEIGHT = 60;
-const PANEL_WIDTH = 120;
-const PANEL_GAP = 10;
+const PANEL_WIDTH = 140;
+const PANEL_GAP = 5;
 const TOTAL_WIDTH = PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP + PANEL_WIDTH;
 const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
-const SEARCH_BOX_HEIGHT = 30;
-const CARD_HEIGHT = 80;
-const CARD_GAP = 8;
+const SEARCH_BOX_HEIGHT = 32;
+const CARD_HEIGHT = 100;
+const CARD_GAP = 10;
 const CARD_WIDTH = PANEL_WIDTH - 16;
 
 const canvas = document.getElementById('game-canvas');
