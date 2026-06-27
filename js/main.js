@@ -157,9 +157,12 @@ const Game = {
       for (const ch of this.characters) {
         if (!ch.alive) continue;
         if (ch.id === proj.ownerId) continue;
+        if (proj.hitTargets && proj.hitTargets.has(ch.id)) continue;
 
         if (Physics.isCircleOctagonColliding(proj, ch)) {
           ch.takeDamage(proj.damage);
+
+          if (proj.hitTargets) proj.hitTargets.add(ch.id);
 
           this.floatingTexts.push({
             x: ch.x + (Math.random() - 0.5) * 40,

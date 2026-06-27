@@ -48,7 +48,7 @@ function createNail(x, y, dirX, dirY, ownerId) {
 
 function createBriefcase(x, y, dirX, dirY, ownerId) {
   const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
-  return new Projectile({
+  const p = new Projectile({
     x, y,
     vx: (dirX / len) * PROJECTILE_SPEED,
     vy: (dirY / len) * PROJECTILE_SPEED,
@@ -59,6 +59,8 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
     color: '#4ECDC4',
     image: BriefcaseImage
   });
+  p.hitTargets = new Set();
+  return p;
 }
 
 function createPaper(x, y, dirX, dirY, ownerId) {
