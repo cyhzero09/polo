@@ -171,12 +171,9 @@ const Game = {
             life: 1
           });
 
-          if (proj.type === 'briefcase') {
-            const papers = splitBriefcase(proj);
-            for (const p of papers) this.projectiles.push(p);
+          if (proj.type !== 'briefcase') {
+            proj.alive = false;
           }
-
-          proj.alive = false;
           break;
         }
       }
