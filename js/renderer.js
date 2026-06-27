@@ -124,6 +124,9 @@ const Renderer = {
 
     if (proj.image && proj.image.complete && proj.image.naturalWidth > 0) {
       ctx.drawImage(proj.image, x - r, y - r, r * 2, r * 2);
+    } else if (proj.type === 'paper') {
+      ctx.fillStyle = proj.color;
+      ctx.fillRect(x - r, y - r * 0.5, r * 2, r);
     } else {
       ctx.save();
       ctx.shadowColor = proj.color;

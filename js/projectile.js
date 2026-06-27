@@ -1,11 +1,14 @@
 const PROJECTILE_SPEED = 400;
-const PAPER_SPEED = 300;
+const PAPER_SPEED = 500;
 const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
 
 const NailImage = new Image();
 NailImage.src = 'picture/nail.png';
+
+const BriefcaseImage = new Image();
+BriefcaseImage.src = 'picture/briefcase.png';
 
 class Projectile {
   constructor(config) {
@@ -52,8 +55,9 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
     damage: BRIEFCASE_DAMAGE,
     ownerId,
     type: 'briefcase',
-    radius: 10,
-    color: '#4ECDC4'
+    radius: 20,
+    color: '#4ECDC4',
+    image: BriefcaseImage
   });
 }
 
@@ -66,8 +70,8 @@ function createPaper(x, y, dirX, dirY, ownerId) {
     damage: PAPER_DAMAGE,
     ownerId,
     type: 'paper',
-    radius: 4,
-    color: '#FFE66D'
+    radius: 6,
+    color: '#ffffff'
   });
 }
 
