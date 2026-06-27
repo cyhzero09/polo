@@ -50,8 +50,9 @@ const Game = {
         id: 1,
         name: '气质女人',
         color: '#FF6B9D',
-        radius: 67,
-        displaySize: 135,
+        radius: 134,
+        displaySize: 270,
+        octagonRadius: 144,
         skillType: 'nail',
         image: CharacterImages.lady
       }),
@@ -59,8 +60,9 @@ const Game = {
         id: 2,
         name: '工作狂人',
         color: '#4ECDC4',
-        radius: 67,
-        displaySize: 135,
+        radius: 134,
+        displaySize: 270,
+        octagonRadius: 144,
         skillType: 'briefcase',
         image: CharacterImages.worker
       })
