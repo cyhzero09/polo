@@ -10,11 +10,82 @@ const Renderer = {
 
   drawBorder(ctx, w, h) {
     ctx.fillStyle = this.bgColor;
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(GAME_OFFSET_X, 0, w, h);
 
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 8;
-    ctx.strokeRect(4, HEADER_HEIGHT + 4, w - 8, h - 8);
+    ctx.strokeRect(GAME_OFFSET_X + 4, HEADER_HEIGHT + 4, w - 8, h - 8);
+  },
+
+  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag) {
+    const panelTop = HEADER_HEIGHT + 10;
+    const fieldIds = fieldCharacters.map(c => c.id);
+
+    for (let side = 0; side < 2; side++) {
+      const px = side === 0 ? 0 : panelWidth + CANVAS_SIZE;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(px, HEADER_HEIGHT, panelWidth, CANVAS_SIZE);
+
+      for (let i = 0; i < CHARACTER_POOL.length; i++) {
+        const config = CHARACTER_POOL[i];
+        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
+        const inField = fieldIds.includes(config.id);
+        const isDragging = drag && drag.config.id === config.id && !drag.fromField;
+
+        ctx.fillStyle = inField ? 'rgba(100,100,100,0.5)' : 'rgba(255,255,255,0.1)';
+        ctx.fillRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
+
+        if (!inField) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
+        }
+
+        const imgSize = 60;
+        const imgX = px + 8 + (CARD_WIDTH - imgSize) / 2;
+        const imgY = cy + 5;
+        const image = CharacterImages[config.imageKey];
+
+        if (image && image.complete && image.naturalWidth > 0) {
+          ctx.save();
+          if (inField) ctx.globalAlpha = 0.4;
+          ctx.drawImage(image, imgX, imgY, imgSize, imgSize);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = inField ? '#666' : config.color;
+          ctx.beginPath();
+          ctx.arc(px + CARD_WIDTH / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = inField ? '#888' : '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(config.name, px + CARD_WIDTH / 2, imgY + imgSize + 4);
+      }
+    }
+  },
+
+  drawDragCharacter(ctx, drag) {
+    const config = drag.config;
+    const image = CharacterImages[config.imageKey];
+    const size = 60;
+    const x = drag.x - drag.offsetX;
+    const y = drag.y - drag.offsetY;
+
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    if (image && image.complete && image.naturalWidth > 0) {
+      ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+    } else {
+      ctx.fillStyle = config.color;
+      ctx.beginPath();
+      ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   },
 
   drawCharacter(ctx, ch) {
