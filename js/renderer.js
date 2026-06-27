@@ -14,7 +14,7 @@ const Renderer = {
 
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 8;
-    ctx.strokeRect(4, 4, w - 8, h - 8);
+    ctx.strokeRect(4, HEADER_HEIGHT + 4, w - 8, h - 8);
   },
 
   drawCharacter(ctx, ch) {
@@ -134,12 +134,35 @@ const Renderer = {
     ctx.restore();
   },
 
-  drawCharacterCount(ctx, w, alive, total) {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`存活: ${alive}/${total}`, w - 15, 15);
+  drawDamageText(ctx, ft) {
+    ctx.save();
+    ctx.globalAlpha = ft.alpha;
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#FFFF00';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  },
+
+  drawVSInfo(ctx, w, characters) {
+    if (!characters || characters.length < 2) return;
+    const text = `${characters[0].name}  VS  ${characters[1].name}`;
+    const fontSize = 30;
+    ctx.font = `bold ${fontSize}px "Microsoft YaHei", Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const tx = w / 2;
+    const ty = HEADER_HEIGHT / 2;
+
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, tx, ty);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(text, tx, ty);
   }
 };
 

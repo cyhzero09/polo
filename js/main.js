@@ -1,11 +1,12 @@
 const CANVAS_SIZE = 750;
+const HEADER_HEIGHT = 45;
 const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = 0;
-const GAME_OFFSET_Y = 0;
+const GAME_OFFSET_Y = HEADER_HEIGHT;
 
 const canvas = document.getElementById('game-canvas');
 canvas.width = CANVAS_SIZE;
-canvas.height = CANVAS_SIZE;
+canvas.height = CANVAS_SIZE + HEADER_HEIGHT;
 const ctx = canvas.getContext('2d');
 
 const CharacterImages = {
@@ -25,9 +26,13 @@ const CharacterImages = {
   workerImg.onload = () => { CharacterImages.worker = workerImg; checkAllLoaded(); };
   workerImg.onerror = () => { checkAllLoaded(); };
 
+  let loaded = 0;
   function checkAllLoaded() {
-    if (CharacterImages.loaded) return;
+    loaded++;
+    if (loaded < 2) return;
     CharacterImages.loaded = true;
+    Game.init();
+    requestAnimationFrame(gameLoop);
   }
 })();
 
@@ -35,6 +40,7 @@ const Game = {
   state: 'INIT',
   characters: [],
   projectiles: [],
+  floatingTexts: [],
   countdown: 0,
   lastTime: 0,
 
@@ -62,6 +68,7 @@ const Game = {
 
     this.placeCharacters();
     this.projectiles = [];
+    this.floatingTexts = [];
     this.state = 'INIT';
     this.countdown = 0;
     this.lastTime = 0;
@@ -69,8 +76,8 @@ const Game = {
 
   placeCharacters() {
     const positions = [
-      { x: GAME_SIZE / 4, y: GAME_SIZE / 2 },
-      { x: GAME_SIZE * 3 / 4, y: GAME_SIZE / 2 }
+      { x: GAME_SIZE / 4, y: GAME_OFFSET_Y + GAME_SIZE / 2 },
+      { x: GAME_SIZE * 3 / 4, y: GAME_OFFSET_Y + GAME_SIZE / 2 }
     ];
     for (let i = positions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -152,6 +159,16 @@ const Game = {
         if (Physics.isCircleOctagonColliding(proj, ch)) {
           ch.takeDamage(proj.damage);
 
+          this.floatingTexts.push({
+            x: ch.x + (Math.random() - 0.5) * 40,
+            y: ch.y - ch.radius - 10,
+            text: `-${proj.damage}`,
+            alpha: 1,
+            vx: (Math.random() - 0.5) * 60,
+            vy: -40 - Math.random() * 30,
+            life: 1
+          });
+
           if (proj.type === 'briefcase') {
             const papers = splitBriefcase(proj);
             for (const p of papers) this.projectiles.push(p);
@@ -164,6 +181,14 @@ const Game = {
     }
 
     this.projectiles = this.projectiles.filter(p => p.alive);
+
+    for (const ft of this.floatingTexts) {
+      ft.life -= dt;
+      ft.x += ft.vx * dt;
+      ft.y += ft.vy * dt;
+      ft.alpha = Math.max(0, ft.life);
+    }
+    this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
 
     const alive = this.characters.filter(c => c.alive);
     if (alive.length <= 1) {
@@ -194,8 +219,9 @@ const Game = {
   },
 
   render() {
-    Renderer.clear(ctx, CANVAS_SIZE, CANVAS_SIZE);
+    Renderer.clear(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT);
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
+    Renderer.drawVSInfo(ctx, CANVAS_SIZE, this.characters);
 
     for (const ch of this.characters) {
       if (!ch.alive) continue;
@@ -207,20 +233,20 @@ const Game = {
       Renderer.drawProjectile(ctx, proj);
     }
 
-    const alive = this.characters.filter(c => c.alive).length;
-    const total = this.characters.length;
-    Renderer.drawCharacterCount(ctx, CANVAS_SIZE, alive, total);
+    for (const ft of this.floatingTexts) {
+      Renderer.drawDamageText(ctx, ft);
+    }
 
     switch (this.state) {
       case 'INIT':
-        UI.drawStartScreen(ctx, CANVAS_SIZE, CANVAS_SIZE, this.characters);
+        UI.drawStartScreen(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, this.characters);
         break;
       case 'COUNTDOWN':
-        UI.drawCountdown(ctx, CANVAS_SIZE, CANVAS_SIZE, this.countdown);
+        UI.drawCountdown(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, this.countdown);
         break;
       case 'GAME_OVER':
         const winner = this.characters.find(c => c.alive) || null;
-        UI.drawGameOver(ctx, CANVAS_SIZE, CANVAS_SIZE, winner);
+        UI.drawGameOver(ctx, CANVAS_SIZE, CANVAS_SIZE + HEADER_HEIGHT, winner);
         break;
     }
   }
@@ -247,6 +273,3 @@ canvas.addEventListener('click', () => {
     Game.restart();
   }
 });
-
-Game.init();
-requestAnimationFrame(gameLoop);

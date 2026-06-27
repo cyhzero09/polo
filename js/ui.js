@@ -1,9 +1,6 @@
 const UI = {
 
   drawStartScreen(ctx, w, h, characters) {
-    ctx.fillStyle = 'rgba(5, 12, 25, 0.78)';
-    ctx.fillRect(0, 0, w, h);
-
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 46px "Microsoft YaHei", Arial';
     ctx.textAlign = 'center';
@@ -11,7 +8,7 @@ const UI = {
     ctx.fillText('弹球对战', w / 2, h / 2 - 75);
 
     ctx.font = '16px "Microsoft YaHei", Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
 
     if (characters && characters.length > 0) {
       let y = h / 2 - 20;
@@ -31,9 +28,13 @@ const UI = {
         }
 
         ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
         ctx.textAlign = 'left';
-        const skillName = ch.skillType === 'nail' ? '指甲攻击(150伤害)' : '公文包(50+分裂纸10x8)';
-        ctx.fillText(`${ch.name}  HP:${ch.maxHp}  ${skillName}`, w / 2 - 48, y);
+        const infoText = `${ch.name}  HP:${ch.maxHp}  ${ch.skillType === 'nail' ? '指甲攻击(150伤害)' : '公文包(50+分裂纸10x8)'}`;
+        ctx.strokeText(infoText, w / 2 - 48, y);
+        ctx.fillText(infoText, w / 2 - 48, y);
         y += 30;
       }
     }
@@ -47,11 +48,11 @@ const UI = {
 
   drawCountdown(ctx, w, h, num) {
     ctx.fillStyle = 'rgba(5, 12, 25, 0.5)';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, HEADER_HEIGHT, w, h - HEADER_HEIGHT);
 
     const scale = 1 + (1 - (num % 1)) * 0.4;
     ctx.save();
-    ctx.translate(w / 2, h / 2);
+    ctx.translate(w / 2, HEADER_HEIGHT + (h - HEADER_HEIGHT) / 2);
     ctx.scale(scale, scale);
 
     ctx.fillStyle = '#fff';
