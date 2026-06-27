@@ -100,7 +100,7 @@ function createBeerBottle(x, y, dirX, dirY, ownerId) {
     damage: BEER_DAMAGE,
     ownerId,
     type: 'beer',
-    radius: 30,
+    radius: 18,
     color: '#D4A017',
     image: BeerBottleImage,
     rotation: 0
