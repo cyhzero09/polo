@@ -28,7 +28,7 @@ class Character {
     this.burstCount = 0;
     this.burstCooldownTimer = 0;
     this.burstMax = 6;
-    this.burstCooldown = 3;
+    this.burstCooldown = 2;
     this.fireInterval = 0.2;
     this.fireTimer = 0;
     this.burstDirection = 0;
