@@ -9,6 +9,9 @@ const BEER_SPEED = 900;
 const BEER_DAMAGE = 80;
 const BEER_ANGLE_OFFSET = 0.45;
 
+const BULLET_SPEED = 1500;
+const BULLET_DAMAGE = 60;
+
 const NailImage = new Image();
 NailImage.src = 'picture/nail.png';
 
@@ -104,6 +107,21 @@ function createBeerBottle(x, y, dirX, dirY, ownerId) {
     color: '#D4A017',
     image: BeerBottleImage,
     rotation: 0
+  });
+}
+
+function createBullet(x, y, dirX, ownerId) {
+  const len = Math.abs(dirX) || 1;
+  const dir = dirX > 0 ? 1 : -1;
+  return new Projectile({
+    x, y,
+    vx: dir * BULLET_SPEED,
+    vy: 0,
+    damage: BULLET_DAMAGE,
+    ownerId,
+    type: 'bullet',
+    radius: 12,
+    color: '#C87533'
   });
 }
 

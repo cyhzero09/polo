@@ -22,6 +22,16 @@ class Character {
     this.animFrames = config.animFrames || null;
     this.animTimer = 0;
     this.animIndex = 0;
+    this.shootingImage = config.shootingImage || null;
+    this.isShooting = false;
+    this.shootingAnimTimer = 0;
+    this.burstCount = 0;
+    this.burstCooldownTimer = 0;
+    this.burstMax = 6;
+    this.burstCooldown = 3;
+    this.fireInterval = 0.2;
+    this.fireTimer = 0;
+    this.burstDirection = 0;
 
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 3.5;
@@ -63,6 +73,27 @@ class Character {
 
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+
+    if (this.skillType === 'bullet') {
+      if (this.burstCooldownTimer > 0) {
+        this.burstCooldownTimer -= dt;
+      }
+      if (this.isShooting) {
+        this.fireTimer += dt;
+        this.shootingAnimTimer += dt;
+        if (this.fireTimer >= this.fireInterval && this.burstCount < this.burstMax) {
+          this.fireTimer -= this.fireInterval;
+          this.burstCount++;
+          const shouldStop = this.burstCount >= this.burstMax;
+          if (shouldStop) {
+            this.isShooting = false;
+            this.burstCooldownTimer = this.burstCooldown;
+          }
+          return 'fire';
+        }
+      }
+    }
+
     this.skillTimer += dt * 1000;
   }
 
@@ -78,5 +109,10 @@ class Character {
       }
     }
     return nearest;
+  }
+
+  isHorizontallyAlignedWith(enemy) {
+    const halfSize = enemy.displaySize / 2;
+    return this.y >= enemy.y - halfSize && this.y <= enemy.y + halfSize;
   }
 }

@@ -26,12 +26,14 @@ const CharacterImages = {
   worker: null,
   beermaster: null,
   beermasterFrames: [],
+  gunman: null,
+  shooting: null,
   loaded: false
 };
 
 (function loadImages() {
   let loaded = 0;
-  const total = 12;
+  const total = 14;
   function checkAllLoaded() {
     loaded++;
     if (loaded < total) return;
@@ -62,6 +64,16 @@ const CharacterImages = {
     frame.onload = () => { CharacterImages.beermasterFrames[idx] = frame; checkAllLoaded(); };
     frame.onerror = () => { checkAllLoaded(); };
   }
+
+  const gunmanImg = new Image();
+  gunmanImg.src = 'picture/gunman.png';
+  gunmanImg.onload = () => { CharacterImages.gunman = gunmanImg; checkAllLoaded(); };
+  gunmanImg.onerror = () => { checkAllLoaded(); };
+
+  const shootingImg = new Image();
+  shootingImg.src = 'picture/shooting.png';
+  shootingImg.onload = () => { CharacterImages.shooting = shootingImg; checkAllLoaded(); };
+  shootingImg.onerror = () => { checkAllLoaded(); };
 })();
 
 const CHARACTER_POOL = [
@@ -95,6 +107,17 @@ const CHARACTER_POOL = [
     skillType: 'beer',
     imageKey: 'beermaster',
     animKey: 'beermasterFrames'
+  },
+  {
+    id: 4,
+    name: '西部牛仔',
+    color: '#C87533',
+    radius: 94,
+    displaySize: 188,
+    octagonRadius: 100,
+    skillType: 'bullet',
+    imageKey: 'gunman',
+    shootingImageKey: 'shooting'
   }
 ];
 
@@ -230,11 +253,31 @@ const Game = {
 
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
-      ch.update(dt);
+      const result = ch.update(dt);
       Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y);
-      if (ch.skillTimer >= ch.skillCooldown) {
-        this.fireSkill(ch);
-        ch.skillTimer -= ch.skillCooldown;
+
+      if (ch.skillType === 'bullet') {
+        if (result === 'fire') {
+          const proj = createBullet(ch.x, ch.y, ch.burstDirection, ch.id);
+          this.projectiles.push(proj);
+        }
+        if (!ch.isShooting && ch.burstCooldownTimer <= 0) {
+          const enemy = ch.findNearestEnemy(this.fieldCharacters);
+          if (enemy && ch.isHorizontallyAlignedWith(enemy)) {
+            ch.isShooting = true;
+            ch.burstDirection = (enemy.x - ch.x) > 0 ? 1 : -1;
+            ch.fireTimer = 0;
+            ch.burstCount = 1;
+            ch.shootingAnimTimer = 0;
+            const proj = createBullet(ch.x, ch.y, ch.burstDirection, ch.id);
+            this.projectiles.push(proj);
+          }
+        }
+      } else {
+        if (ch.skillTimer >= ch.skillCooldown) {
+          this.fireSkill(ch);
+          ch.skillTimer -= ch.skillCooldown;
+        }
       }
     }
 
@@ -473,6 +516,7 @@ canvas.addEventListener('mouseup', (e) => {
       const config = drag.config;
       const image = CharacterImages[config.imageKey];
       const animFrames = config.animKey ? CharacterImages[config.animKey] : null;
+      const shootingImage = config.shootingImageKey ? CharacterImages[config.shootingImageKey] : null;
       const ch = new Character({
         id: config.id,
         name: config.name,
@@ -482,7 +526,8 @@ canvas.addEventListener('mouseup', (e) => {
         octagonRadius: config.octagonRadius,
         skillType: config.skillType,
         image: image,
-        animFrames: animFrames
+        animFrames: animFrames,
+        shootingImage: shootingImage
       });
       ch.x = mx;
       ch.y = my;

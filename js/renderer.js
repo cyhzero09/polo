@@ -136,6 +136,50 @@ const Renderer = {
 
     if (currentFrame) {
       ctx.drawImage(currentFrame, x - half, y - half, size, size);
+    } else if (ch.skillType === 'bullet') {
+      let img = null;
+      if (ch.isShooting && ch.shootingImage && ch.shootingImage.complete && ch.shootingImage.naturalWidth > 0) {
+        img = ch.shootingImage;
+      } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+        img = ch.image;
+      }
+      if (img) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (ch.isShooting && ch.burstDirection === 1) {
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(img, -half, -half, size, size);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.shadowColor = ch.color;
+        ctx.shadowBlur = 15;
+
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ch.color;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const gradient = ctx.createRadialGradient(x - ch.radius * 0.3, y - ch.radius * 0.3, ch.radius * 0.1, x, y, ch.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.restore();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch.name, x, y);
+      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
     } else {
@@ -252,6 +296,20 @@ const Renderer = {
     } else if (proj.type === 'paper') {
       ctx.fillStyle = proj.color;
       ctx.fillRect(x - r, y - r * 0.5, r * 2, r);
+    } else if (proj.type === 'bullet') {
+      ctx.save();
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.ellipse(x, y, r * 2, r * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#FFF8DC';
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     } else {
       ctx.save();
       ctx.shadowColor = proj.color;
