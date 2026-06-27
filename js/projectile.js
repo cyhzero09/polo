@@ -1,4 +1,5 @@
-const PROJECTILE_SPEED = 400;
+const NAIL_SPEED = 400;
+const BRIEFCASE_SPEED = 600;
 const PAPER_SPEED = 1200;
 const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
@@ -35,8 +36,8 @@ function createNail(x, y, dirX, dirY, ownerId) {
   const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
   return new Projectile({
     x, y,
-    vx: (dirX / len) * PROJECTILE_SPEED,
-    vy: (dirY / len) * PROJECTILE_SPEED,
+    vx: (dirX / len) * NAIL_SPEED,
+    vy: (dirY / len) * NAIL_SPEED,
     damage: NAIL_DAMAGE,
     ownerId,
     type: 'nail',
@@ -50,8 +51,8 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
   const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
   const p = new Projectile({
     x, y,
-    vx: (dirX / len) * PROJECTILE_SPEED,
-    vy: (dirY / len) * PROJECTILE_SPEED,
+    vx: (dirX / len) * BRIEFCASE_SPEED,
+    vy: (dirY / len) * BRIEFCASE_SPEED,
     damage: BRIEFCASE_DAMAGE,
     ownerId,
     type: 'briefcase',
