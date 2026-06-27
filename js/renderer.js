@@ -17,21 +17,46 @@ const Renderer = {
     ctx.strokeRect(GAME_OFFSET_X + 4, HEADER_HEIGHT + 4, w - 8, h - 8);
   },
 
-  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag) {
+  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused) {
     const panelTop = HEADER_HEIGHT + 10;
     const fieldIds = fieldCharacters.map(c => c.id);
+    const q = searchText.toLowerCase();
+    const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
 
     for (let side = 0; side < 2; side++) {
-      const px = side === 0 ? 0 : panelWidth + CANVAS_SIZE;
+      const px = side === 0 ? 0 : panelWidth + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
 
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(px, HEADER_HEIGHT, panelWidth, CANVAS_SIZE);
 
-      for (let i = 0; i < CHARACTER_POOL.length; i++) {
-        const config = CHARACTER_POOL[i];
-        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
+      const sy = panelTop;
+      ctx.fillStyle = searchFocused ? '#fff' : 'rgba(255,255,255,0.15)';
+      ctx.fillRect(px + 4, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
+      ctx.strokeStyle = searchFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = searchFocused ? 2 : 1;
+      ctx.strokeRect(px + 4, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
+
+      ctx.fillStyle = searchFocused ? '#000' : 'rgba(255,255,255,0.5)';
+      ctx.font = '14px "Microsoft YaHei", Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const displayText = searchText || '搜索角色...';
+      ctx.fillText(displayText, px + 10, sy + SEARCH_BOX_HEIGHT / 2);
+
+      if (searchFocused) {
+        const tw = ctx.measureText(searchText).width;
+        const cursorX = px + 10 + tw;
+        if (Math.floor(Date.now() / 500) % 2 === 0) {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(cursorX, sy + 6, 2, SEARCH_BOX_HEIGHT - 12);
+        }
+      }
+
+      const cardTop = panelTop + SEARCH_BOX_HEIGHT + 10;
+      for (let i = 0; i < filtered.length; i++) {
+        const config = filtered[i];
+        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP);
         const inField = fieldIds.includes(config.id);
-        const isDragging = drag && drag.config.id === config.id && !drag.fromField;
 
         ctx.fillStyle = inField ? 'rgba(100,100,100,0.5)' : 'rgba(255,255,255,0.1)';
         ctx.fillRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
@@ -42,9 +67,9 @@ const Renderer = {
           ctx.strokeRect(px + 8, cy, CARD_WIDTH, CARD_HEIGHT);
         }
 
-        const imgSize = 60;
+        const imgSize = 50;
         const imgX = px + 8 + (CARD_WIDTH - imgSize) / 2;
-        const imgY = cy + 5;
+        const imgY = cy + 4;
         const image = CharacterImages[config.imageKey];
 
         if (image && image.complete && image.naturalWidth > 0) {
@@ -60,10 +85,18 @@ const Renderer = {
         }
 
         ctx.fillStyle = inField ? '#888' : '#fff';
-        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.font = 'bold 11px "Microsoft YaHei", Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(config.name, px + CARD_WIDTH / 2, imgY + imgSize + 4);
+        ctx.fillText(config.name, px + CARD_WIDTH / 2, imgY + imgSize + 3);
+      }
+
+      if (filtered.length === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '13px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('无匹配角色', px + CARD_WIDTH / 2 + 8, cardTop + 40);
       }
     }
   },

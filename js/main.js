@@ -2,13 +2,15 @@ const CANVAS_SIZE = 750;
 const HEADER_HEIGHT = 45;
 const FOOTER_HEIGHT = 60;
 const PANEL_WIDTH = 120;
-const TOTAL_WIDTH = PANEL_WIDTH * 2 + CANVAS_SIZE;
+const PANEL_GAP = 10;
+const TOTAL_WIDTH = PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP + PANEL_WIDTH;
 const GAME_SIZE = CANVAS_SIZE;
-const GAME_OFFSET_X = PANEL_WIDTH;
+const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
-const CARD_HEIGHT = 90;
-const CARD_GAP = 10;
+const SEARCH_BOX_HEIGHT = 30;
+const CARD_HEIGHT = 80;
+const CARD_GAP = 8;
 const CARD_WIDTH = PANEL_WIDTH - 16;
 
 const canvas = document.getElementById('game-canvas');
@@ -74,6 +76,8 @@ const Game = {
   countdown: 0,
   lastTime: 0,
   drag: null,
+  searchText: '',
+  searchFocused: false,
 
   init() {
     this.fieldCharacters = [];
@@ -83,6 +87,14 @@ const Game = {
     this.countdown = 0;
     this.lastTime = 0;
     this.drag = null;
+    this.searchText = '';
+    this.searchFocused = false;
+  },
+
+  getFilteredPool() {
+    const q = this.searchText.toLowerCase();
+    if (!q) return CHARACTER_POOL;
+    return CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q));
   },
 
   start() {
@@ -113,17 +125,29 @@ const Game = {
   },
 
   getPoolIndexAt(mx, my) {
-    const panelTop = HEADER_HEIGHT + 10;
+    const filtered = this.getFilteredPool();
+    const panelTop = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
-      const px = side === 0 ? 8 : PANEL_WIDTH + CANVAS_SIZE + 8;
-      for (let i = 0; i < CHARACTER_POOL.length; i++) {
+      const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+      for (let i = 0; i < filtered.length; i++) {
         const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
         if (mx >= px && mx <= px + CARD_WIDTH && my >= cy && my <= cy + CARD_HEIGHT) {
-          return i;
+          return CHARACTER_POOL.indexOf(filtered[i]);
         }
       }
     }
     return -1;
+  },
+
+  getSearchBoxAt(mx, my) {
+    const sy = HEADER_HEIGHT + 10;
+    for (let side = 0; side < 2; side++) {
+      const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+      if (mx >= px + 4 && mx <= px + CARD_WIDTH + 4 && my >= sy && my <= sy + SEARCH_BOX_HEIGHT) {
+        return true;
+      }
+    }
+    return false;
   },
 
   getFieldIndexAt(mx, my) {
@@ -258,7 +282,7 @@ const Game = {
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
 
     if (this.state === 'INIT') {
-      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag);
+      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused);
     }
 
     for (const ch of this.fieldCharacters) {
@@ -322,6 +346,12 @@ canvas.addEventListener('mousedown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
   const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+  if (Game.getSearchBoxAt(mx, my)) {
+    Game.searchFocused = true;
+    return;
+  }
+  Game.searchFocused = false;
 
   const fieldIdx = Game.getFieldIndexAt(mx, my);
   if (fieldIdx >= 0) {
@@ -419,5 +449,18 @@ canvas.addEventListener('click', (e) => {
     if (my >= btnY - 25 && my <= btnY + 25 && mx >= GAME_OFFSET_X + CANVAS_SIZE / 2 - 100 && mx <= GAME_OFFSET_X + CANVAS_SIZE / 2 + 100) {
       Game.start();
     }
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (Game.state !== 'INIT' || !Game.searchFocused) return;
+  if (e.key === 'Backspace') {
+    Game.searchText = Game.searchText.slice(0, -1);
+    e.preventDefault();
+  } else if (e.key === 'Escape') {
+    Game.searchFocused = false;
+  } else if (e.key.length === 1 && e.key.match(/[\u4e00-\u9fa5a-zA-Z0-9]/)) {
+    Game.searchText += e.key;
+    e.preventDefault();
   }
 });
