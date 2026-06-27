@@ -1,5 +1,5 @@
 const PROJECTILE_SPEED = 400;
-const PAPER_SPEED = 500;
+const PAPER_SPEED = 1000;
 const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
@@ -40,7 +40,7 @@ function createNail(x, y, dirX, dirY, ownerId) {
     damage: NAIL_DAMAGE,
     ownerId,
     type: 'nail',
-    radius: 24,
+    radius: 36,
     color: '#FF6B9D',
     image: NailImage
   });
@@ -55,7 +55,7 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
     damage: BRIEFCASE_DAMAGE,
     ownerId,
     type: 'briefcase',
-    radius: 40,
+    radius: 60,
     color: '#4ECDC4',
     image: BriefcaseImage
   });
@@ -72,7 +72,7 @@ function createPaper(x, y, dirX, dirY, ownerId) {
     damage: PAPER_DAMAGE,
     ownerId,
     type: 'paper',
-    radius: 12,
+    radius: 18,
     color: '#ffffff'
   });
 }
