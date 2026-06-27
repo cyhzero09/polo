@@ -22,16 +22,35 @@ const Physics = {
     return { min, max };
   },
 
+  normalizeAxis(axis) {
+    const len = Math.sqrt(axis.x * axis.x + axis.y * axis.y);
+    if (len < 1e-8) return null;
+    return { x: axis.x / len, y: axis.y / len };
+  },
+
   getAxes(verts1, verts2) {
     const axes = [];
-    for (let i = 0; i < verts1.length; i++) {
-      const edge = {
-        x: verts1[(i + 1) % verts1.length].x - verts1[i].x,
-        y: verts1[(i + 1) % verts1.length].y - verts1[i].y
-      };
-      axes.push({ x: -edge.y, y: edge.x });
+    const allVerts = [verts1, verts2];
+    for (const verts of allVerts) {
+      for (let i = 0; i < verts.length; i++) {
+        const edge = {
+          x: verts[(i + 1) % verts.length].x - verts[i].x,
+          y: verts[(i + 1) % verts.length].y - verts[i].y
+        };
+        const axis = Physics.normalizeAxis({ x: -edge.y, y: edge.x });
+        if (axis) axes.push(axis);
+      }
     }
-    return axes;
+    const unique = [];
+    for (const a of axes) {
+      let dup = false;
+      for (const u of unique) {
+        if (Math.abs(a.x - u.x) < 1e-6 && Math.abs(a.y - u.y) < 1e-6) dup = true;
+        if (Math.abs(a.x + u.x) < 1e-6 && Math.abs(a.y + u.y) < 1e-6) dup = true;
+      }
+      if (!dup) unique.push(a);
+    }
+    return unique;
   },
 
   resolveCharacterCollision(c1, c2) {
@@ -52,32 +71,40 @@ const Physics = {
       const overlap = Math.min(proj1.max - proj2.min, proj2.max - proj1.min);
       if (overlap < minOverlap) {
         minOverlap = overlap;
-        collisionAxis = axis;
+        collisionAxis = { x: axis.x, y: axis.y };
       }
     }
 
     if (!collisionAxis) return;
 
-    const len = Math.sqrt(collisionAxis.x * collisionAxis.x + collisionAxis.y * collisionAxis.y);
-    const nx = collisionAxis.x / len;
-    const ny = collisionAxis.y / len;
+    const dx = c2.x - c1.x;
+    const dy = c2.y - c1.y;
+    const dot = dx * collisionAxis.x + dy * collisionAxis.y;
+    if (dot < 0) {
+      collisionAxis.x = -collisionAxis.x;
+      collisionAxis.y = -collisionAxis.y;
+    }
+
+    const restitution = 0.5;
+    const separation = minOverlap / 2 + 0.5;
+
+    c1.x -= separation * collisionAxis.x;
+    c1.y -= separation * collisionAxis.y;
+    c2.x += separation * collisionAxis.x;
+    c2.y += separation * collisionAxis.y;
 
     const dvx = c1.vx - c2.vx;
     const dvy = c1.vy - c2.vy;
-    const velAlongNormal = dvx * nx + dvy * ny;
+    const velAlongNormal = dvx * collisionAxis.x + dvy * collisionAxis.y;
 
     if (velAlongNormal <= 0) return;
 
-    c1.vx -= velAlongNormal * nx;
-    c1.vy -= velAlongNormal * ny;
-    c2.vx += velAlongNormal * nx;
-    c2.vy += velAlongNormal * ny;
+    const impulse = (1 + restitution) * velAlongNormal / 2;
 
-    const overlap = minOverlap / 2;
-    c1.x -= overlap * nx;
-    c1.y -= overlap * ny;
-    c2.x += overlap * nx;
-    c2.y += overlap * ny;
+    c1.vx -= impulse * collisionAxis.x;
+    c1.vy -= impulse * collisionAxis.y;
+    c2.vx += impulse * collisionAxis.x;
+    c2.vy += impulse * collisionAxis.y;
   },
 
   resolveBoundary(entity, w, h, offsetX, offsetY) {

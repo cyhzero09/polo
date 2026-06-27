@@ -63,21 +63,39 @@ const Renderer = {
     const barH = 70;
     const armW = 70;
     const armH = 20;
-    const gap = 2;
+    const gap = -15;
 
-    const totalH = barH + gap;
-    const topY = barBottomY - totalH - armH / 2;
+    const topY = barBottomY - barH - gap;
 
     const ratio = hp / maxHp;
     const fillColor = hp > 500 ? '#ffffff' : '#ee4444';
 
-    ctx.fillStyle = '#555';
-    ctx.fillRect(x - barW / 2, topY, barW, barH);
-
     const armCenterY = topY + barH / 2;
 
+    function crossPath(c) {
+      const lx = x - barW / 2, rx = x + barW / 2;
+      const ty = topY, by = topY + barH;
+      const aty = armCenterY - armH / 2, aby = armCenterY + armH / 2;
+      const alx = x - armW / 2, arx = x + armW / 2;
+      c.beginPath();
+      c.moveTo(lx, ty);
+      c.lineTo(rx, ty);
+      c.lineTo(rx, aty);
+      c.lineTo(arx, aty);
+      c.lineTo(arx, aby);
+      c.lineTo(rx, aby);
+      c.lineTo(rx, by);
+      c.lineTo(lx, by);
+      c.lineTo(lx, aby);
+      c.lineTo(alx, aby);
+      c.lineTo(alx, aty);
+      c.lineTo(lx, aty);
+      c.closePath();
+    }
+
     ctx.fillStyle = '#555';
-    ctx.fillRect(x - armW / 2, armCenterY - armH / 2, armW, armH);
+    crossPath(ctx);
+    ctx.fill();
 
     const fillH = barH * ratio;
     ctx.fillStyle = fillColor;
@@ -87,11 +105,16 @@ const Renderer = {
     ctx.fillStyle = fillColor;
     ctx.fillRect(x - armW / 2, armCenterY + armH / 2 - armFillH, armW, armFillH);
 
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = '22px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#444';
     ctx.fillText(Math.ceil(hp), x, topY + barH / 2);
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    crossPath(ctx);
+    ctx.stroke();
   },
 
   drawProjectile(ctx, proj) {
