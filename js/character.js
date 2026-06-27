@@ -1,7 +1,7 @@
 const MAX_HP = 1000;
 const SKILL_COOLDOWN = 1500;
-const SPEED_MIN = 100;
-const SPEED_MAX = 160;
+const SPEED_MIN = 200;
+const SPEED_MAX = 320;
 
 class Character {
   constructor(config) {
