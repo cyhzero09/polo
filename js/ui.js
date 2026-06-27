@@ -10,8 +10,7 @@ const UI = {
   },
 
   drawPauseButton(ctx, w, h) {
-    const alpha = 0.55 + Math.sin(Date.now() / 600) * 0.35;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillStyle = '#fff';
     ctx.font = 'bold 28px "Microsoft YaHei", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

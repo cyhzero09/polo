@@ -294,12 +294,6 @@ canvas.addEventListener('click', (e) => {
     return;
   }
   if (Game.state === 'PLAYING' || Game.state === 'PAUSED') {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const btnY = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT / 2;
-    if (y >= btnY - 20 && y <= btnY + 20 && x >= CANVAS_SIZE / 2 - 60 && x <= CANVAS_SIZE / 2 + 60) {
-      Game.togglePause();
-    }
+    Game.togglePause();
   }
 });
