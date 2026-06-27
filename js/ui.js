@@ -11,11 +11,11 @@ const UI = {
 
   drawCountdown(ctx, w, h, num) {
     ctx.fillStyle = 'rgba(5, 12, 25, 0.5)';
-    ctx.fillRect(0, HEADER_HEIGHT, w, h - HEADER_HEIGHT);
+    ctx.fillRect(0, HEADER_HEIGHT, w, CANVAS_SIZE);
 
     const scale = 1 + (1 - (num % 1)) * 0.4;
     ctx.save();
-    ctx.translate(w / 2, HEADER_HEIGHT + (h - HEADER_HEIGHT) / 2);
+    ctx.translate(w / 2, HEADER_HEIGHT + CANVAS_SIZE / 2);
     ctx.scale(scale, scale);
 
     ctx.fillStyle = '#fff';
@@ -29,7 +29,7 @@ const UI = {
 
   drawGameOver(ctx, w, h, winner) {
     ctx.fillStyle = 'rgba(5, 12, 25, 0.78)';
-    ctx.fillRect(0, HEADER_HEIGHT, w, h - HEADER_HEIGHT);
+    ctx.fillRect(0, HEADER_HEIGHT, w, CANVAS_SIZE);
 
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 40px "Microsoft YaHei", Arial';
