@@ -27,7 +27,9 @@ const UI = {
     ctx.textBaseline = 'middle';
     ctx.fillText('已暂停', w / 2, HEADER_HEIGHT + CANVAS_SIZE / 2);
 
-    this.drawPauseButton(ctx, w, h);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 28px "Microsoft YaHei", Arial';
+    ctx.fillText('点击开始游戏', w / 2, h - FOOTER_HEIGHT / 2);
   },
 
   drawCountdown(ctx, w, h, num) {
