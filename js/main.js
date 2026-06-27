@@ -19,6 +19,7 @@ canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
 const ctx = canvas.getContext('2d');
 
 const BeerSound = new Audio('audio/alababier.mp3');
+const YahuSound = new Audio('audio/yahu.mp3');
 
 const CharacterImages = {
   lady: null,
@@ -298,6 +299,8 @@ const Game = {
     switch (ch.skillType) {
       case 'nail':
         proj = createNail(ch.x, ch.y, dx, dy, ch.id);
+        YahuSound.currentTime = 0;
+        YahuSound.play().catch(() => {});
         break;
       case 'briefcase':
         proj = createBriefcase(ch.x, ch.y, dx, dy, ch.id);
