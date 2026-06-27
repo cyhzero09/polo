@@ -1,7 +1,6 @@
 const MAX_HP = 1000;
 const SKILL_COOLDOWN = 1500;
-const SPEED_MIN = 200;
-const SPEED_MAX = 320;
+const SPEED = 260;
 
 class Character {
   constructor(config) {
@@ -22,9 +21,9 @@ class Character {
     this.image = config.image || null;
 
     const angle = Math.random() * Math.PI * 2;
-    const speed = SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN);
-    this.vx = Math.cos(angle) * speed;
-    this.vy = Math.sin(angle) * speed;
+    this.speed = SPEED;
+    this.vx = Math.cos(angle) * SPEED;
+    this.vy = Math.sin(angle) * SPEED;
   }
 
   takeDamage(amount) {

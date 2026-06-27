@@ -108,10 +108,10 @@ const Physics = {
 
     const s1 = Math.sqrt(c1.vx * c1.vx + c1.vy * c1.vy) || 1;
     const s2 = Math.sqrt(c2.vx * c2.vx + c2.vy * c2.vy) || 1;
-    c1.vx = (c1.vx / s1) * (SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN));
-    c1.vy = (c1.vy / s1) * (SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN));
-    c2.vx = (c2.vx / s2) * (SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN));
-    c2.vy = (c2.vy / s2) * (SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN));
+    c1.vx = (c1.vx / s1) * c1.speed;
+    c1.vy = (c1.vy / s1) * c1.speed;
+    c2.vx = (c2.vx / s2) * c2.speed;
+    c2.vy = (c2.vy / s2) * c2.speed;
   },
 
   resolveBoundary(entity, w, h, offsetX, offsetY) {
