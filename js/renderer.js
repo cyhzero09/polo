@@ -125,9 +125,8 @@ const Renderer = {
     if (proj.image && proj.image.complete && proj.image.naturalWidth > 0) {
       const imgW = proj.image.naturalWidth;
       const imgH = proj.image.naturalHeight;
-      const scale = (r * 2) / Math.max(imgW, imgH);
-      const dw = imgW * scale;
-      const dh = imgH * scale;
+      const dw = r * 2;
+      const dh = (imgH / imgW) * dw;
       ctx.drawImage(proj.image, x - dw / 2, y - dh / 2, dw, dh);
     } else if (proj.type === 'paper') {
       ctx.fillStyle = proj.color;
