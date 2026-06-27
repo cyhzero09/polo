@@ -298,17 +298,16 @@ const Renderer = {
       ctx.fillRect(x - r, y - r * 0.5, r * 2, r);
     } else if (proj.type === 'bullet') {
       ctx.save();
+      ctx.globalAlpha = proj.alpha;
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
       ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = '#FFD700';
+      ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.ellipse(x, y, r * 2, r * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#FFF8DC';
-      ctx.beginPath();
-      ctx.ellipse(x, y, r, r * 0.3, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(proj.x, proj.y);
+      ctx.lineTo(proj.endX, proj.y);
+      ctx.stroke();
       ctx.restore();
     } else {
       ctx.save();

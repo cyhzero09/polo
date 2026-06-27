@@ -258,8 +258,7 @@ const Game = {
 
       if (ch.skillType === 'bullet') {
         if (result === 'fire') {
-          const proj = createBullet(ch.x, ch.y, ch.burstDirection, ch.id);
-          this.projectiles.push(proj);
+          this.fireBulletLine(ch);
         }
         if (!ch.isShooting && ch.burstCooldownTimer <= 0) {
           const enemy = ch.findNearestEnemy(this.fieldCharacters);
@@ -269,8 +268,7 @@ const Game = {
             ch.fireTimer = 0;
             ch.burstCount = 1;
             ch.shootingAnimTimer = 0;
-            const proj = createBullet(ch.x, ch.y, ch.burstDirection, ch.id);
-            this.projectiles.push(proj);
+            this.fireBulletLine(ch);
           }
         }
       } else {
@@ -293,6 +291,8 @@ const Game = {
     for (const proj of this.projectiles) {
       if (!proj.alive) continue;
       proj.update(dt);
+
+      if (proj.type === 'bullet') continue;
 
       let hitWall = false;
       if (proj.x - proj.radius < GAME_OFFSET_X) { proj.x = GAME_OFFSET_X + proj.radius; hitWall = true; }
@@ -348,6 +348,40 @@ const Game = {
     if (alive.length <= 1) {
       this.state = 'GAME_OVER';
     }
+  },
+
+  fireBulletLine(ch) {
+    const dir = ch.burstDirection;
+    let endX;
+    let hitEnemy = null;
+
+    for (const other of this.fieldCharacters) {
+      if (!other.alive || other.id === ch.id) continue;
+      const half = other.displaySize / 2;
+      if (ch.y >= other.y - half && ch.y <= other.y + half) {
+        hitEnemy = other;
+        break;
+      }
+    }
+
+    if (hitEnemy) {
+      hitEnemy.takeDamage(BULLET_DAMAGE);
+      this.floatingTexts.push({
+        x: hitEnemy.x + (Math.random() - 0.5) * 40,
+        y: hitEnemy.y - hitEnemy.radius - 10,
+        text: `-${BULLET_DAMAGE}`,
+        alpha: 1,
+        vx: (Math.random() - 0.5) * 60,
+        vy: -40 - Math.random() * 30,
+        life: 1
+      });
+      endX = hitEnemy.x;
+    } else {
+      endX = dir > 0 ? GAME_OFFSET_X + CANVAS_SIZE : GAME_OFFSET_X;
+    }
+
+    const ray = createBulletLine(ch.x, ch.y, endX, ch.id);
+    this.projectiles.push(ray);
   },
 
   fireSkill(ch) {
