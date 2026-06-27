@@ -1,5 +1,5 @@
 const PROJECTILE_SPEED = 400;
-const PAPER_SPEED = 1000;
+const PAPER_SPEED = 1500;
 const NAIL_DAMAGE = 150;
 const BRIEFCASE_DAMAGE = 50;
 const PAPER_DAMAGE = 10;
@@ -40,7 +40,7 @@ function createNail(x, y, dirX, dirY, ownerId) {
     damage: NAIL_DAMAGE,
     ownerId,
     type: 'nail',
-    radius: 54,
+    radius: 36,
     color: '#FF6B9D',
     image: NailImage
   });
