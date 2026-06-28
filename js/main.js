@@ -26,6 +26,8 @@ const EndingSound = new Audio('audio/dang.mp3');
 EndingSound.volume = 0.2;
 const GaowanSound = new Audio('audio/gaowan.mp3');
 const ShuaKaSound = new Audio('audio/shuaka.mp3');
+const CollisionSound = new Audio('audio/collision.mp3');
+CollisionSound.volume = 0.4;
 
 const CharacterImages = {
   lady: null,
@@ -294,7 +296,11 @@ const Game = {
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
         ch.update(dt);
-        Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y);
+        if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0) {
+          ch.collisionSoundCooldown = 0.2;
+          CollisionSound.currentTime = 0;
+          CollisionSound.play().catch(() => {});
+        }
       }
       for (let i = 0; i < this.fieldCharacters.length; i++) {
         for (let j = i + 1; j < this.fieldCharacters.length; j++) {
@@ -310,7 +316,11 @@ const Game = {
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
       const result = ch.update(dt);
-      Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y);
+      if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0) {
+        ch.collisionSoundCooldown = 0.2;
+        CollisionSound.currentTime = 0;
+        CollisionSound.play().catch(() => {});
+      }
 
       if (ch.skillType === 'bullet') {
         if (result === 'fire') {

@@ -126,10 +126,12 @@ const Physics = {
       if (v.y > maxY) maxY = v.y;
     }
 
-    if (minX < ox) { entity.x += (ox - minX); entity.vx = Math.abs(entity.vx); }
-    if (maxX > ox + w) { entity.x -= (maxX - (ox + w)); entity.vx = -Math.abs(entity.vx); }
-    if (minY < oy) { entity.y += (oy - minY); entity.vy = Math.abs(entity.vy); }
-    if (maxY > oy + h) { entity.y -= (maxY - (oy + h)); entity.vy = -Math.abs(entity.vy); }
+    let hit = false;
+    if (minX < ox) { entity.x += (ox - minX); entity.vx = Math.abs(entity.vx); hit = true; }
+    if (maxX > ox + w) { entity.x -= (maxX - (ox + w)); entity.vx = -Math.abs(entity.vx); hit = true; }
+    if (minY < oy) { entity.y += (oy - minY); entity.vy = Math.abs(entity.vy); hit = true; }
+    if (maxY > oy + h) { entity.y -= (maxY - (oy + h)); entity.vy = -Math.abs(entity.vy); hit = true; }
+    return hit;
   },
 
   dist(x1, y1, x2, y2) {

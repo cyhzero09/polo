@@ -35,6 +35,7 @@ class Character {
     this.isAttacking = false;
     this.attackAnimTimer = 0;
     this.facingRight = true;
+    this.collisionSoundCooldown = 0;
 
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 8;
@@ -92,6 +93,10 @@ class Character {
 
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+
+    if (this.collisionSoundCooldown > 0) {
+      this.collisionSoundCooldown -= dt;
+    }
 
     if (this.isAttacking) {
       this.attackAnimTimer -= dt;
