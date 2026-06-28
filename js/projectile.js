@@ -11,6 +11,12 @@ const BEER_ANGLE_OFFSET = 0.45;
 
 const BULLET_DAMAGE = 60;
 
+const GAOWAN_DAMAGE = 150;
+const GAOWAN_SPEED = 450;
+const SHOCKWAVE_DAMAGE = 50;
+const SHOCKWAVE_MAX_RADIUS = 250;
+const SHOCKWAVE_EXPAND_SPEED = 400;
+
 const NailImage = new Image();
 NailImage.src = 'picture/nail.png';
 
@@ -19,6 +25,9 @@ BriefcaseImage.src = 'picture/briefcase.png';
 
 const BeerBottleImage = new Image();
 BeerBottleImage.src = 'picture/beer.png';
+
+const GaowanImage = new Image();
+GaowanImage.src = 'picture/gaowan.png';
 
 class Projectile {
   constructor(config) {
@@ -41,6 +50,10 @@ class Projectile {
     this.y += this.vy * dt;
     if (this.type === 'beer') {
       this.rotation -= 450 * dt;
+    }
+    if (this.type === 'gaowan') {
+      const angle = Math.atan2(this.vy, this.vx);
+      this.rotation = angle + Math.PI / 2;
     }
   }
 }
@@ -107,6 +120,45 @@ function createBeerBottle(x, y, dirX, dirY, ownerId) {
     image: BeerBottleImage,
     rotation: 0
   });
+}
+
+function createGaowan(x, y, dirX, dirY, ownerId) {
+  const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+  const angle = Math.atan2(dirY, dirX);
+  return new Projectile({
+    x, y,
+    vx: (dirX / len) * GAOWAN_SPEED,
+    vy: (dirY / len) * GAOWAN_SPEED,
+    damage: GAOWAN_DAMAGE,
+    ownerId,
+    type: 'gaowan',
+    radius: 30,
+    color: '#ff4444',
+    image: GaowanImage,
+    rotation: angle + Math.PI / 2
+  });
+}
+
+function createShockwave(x, y, ownerId) {
+  return {
+    x, y,
+    radius: 0,
+    maxRadius: SHOCKWAVE_MAX_RADIUS,
+    expandSpeed: SHOCKWAVE_EXPAND_SPEED,
+    damage: SHOCKWAVE_DAMAGE,
+    ownerId,
+    type: 'shockwave',
+    alive: true,
+    hitTargets: new Set(),
+    alpha: 1,
+    update(dt) {
+      this.radius += this.expandSpeed * dt;
+      this.alpha = Math.max(0, 1 - this.radius / this.maxRadius);
+      if (this.radius >= this.maxRadius) {
+        this.alive = false;
+      }
+    }
+  };
 }
 
 function createBulletLine(x, y, endX, ownerId) {

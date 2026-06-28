@@ -180,6 +180,50 @@ const Renderer = {
         ctx.textBaseline = 'middle';
         ctx.fillText(ch.name, x, y);
       }
+    } else if (ch.skillType === 'gaowan') {
+      let img = null;
+      if (ch.isAttacking && ch.shootingImage && ch.shootingImage.complete && ch.shootingImage.naturalWidth > 0) {
+        img = ch.shootingImage;
+      } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+        img = ch.image;
+      }
+      if (img) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (ch.facingRight) {
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(img, -half, -half, size, size);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.shadowColor = ch.color;
+        ctx.shadowBlur = 15;
+
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ch.color;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const gradient = ctx.createRadialGradient(x - ch.radius * 0.3, y - ch.radius * 0.3, ch.radius * 0.1, x, y, ch.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.restore();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch.name, x, y);
+      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
     } else {
@@ -290,6 +334,12 @@ const Renderer = {
         ctx.rotate(proj.rotation * Math.PI / 180);
         ctx.drawImage(proj.image, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
+      } else if (proj.type === 'gaowan') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(proj.rotation);
+        ctx.drawImage(proj.image, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
       } else {
         ctx.drawImage(proj.image, x - dw / 2, y - dh / 2, dw, dh);
       }
@@ -304,6 +354,15 @@ const Renderer = {
       ctx.beginPath();
       ctx.moveTo(proj.x, proj.y);
       ctx.lineTo(proj.endX, proj.y);
+      ctx.stroke();
+      ctx.restore();
+    } else if (proj.type === 'shockwave') {
+      ctx.save();
+      ctx.globalAlpha = proj.alpha * 0.6;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     } else {

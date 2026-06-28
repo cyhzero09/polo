@@ -24,6 +24,7 @@ const AttackSound = new Audio('audio/attack.mp3');
 AttackSound.volume = 0.5;
 const EndingSound = new Audio('audio/dang.mp3');
 EndingSound.volume = 0.2;
+const GaowanSound = new Audio('audio/gaowan.mp3');
 
 const CharacterImages = {
   lady: null,
@@ -32,12 +33,14 @@ const CharacterImages = {
   beermasterFrames: [],
   gunman: null,
   shooting: null,
+  guanzhang: null,
+  gaowanfashe: null,
   loaded: false
 };
 
 (function loadImages() {
   let loaded = 0;
-  const total = 14;
+  const total = 16;
   function checkAllLoaded() {
     loaded++;
     if (loaded < total) return;
@@ -78,6 +81,16 @@ const CharacterImages = {
   shootingImg.src = 'picture/shooting.png';
   shootingImg.onload = () => { CharacterImages.shooting = shootingImg; checkAllLoaded(); };
   shootingImg.onerror = () => { checkAllLoaded(); };
+
+  const guanzhangImg = new Image();
+  guanzhangImg.src = 'picture/guanzhang.png';
+  guanzhangImg.onload = () => { CharacterImages.guanzhang = guanzhangImg; checkAllLoaded(); };
+  guanzhangImg.onerror = () => { checkAllLoaded(); };
+
+  const gaowanfasheImg = new Image();
+  gaowanfasheImg.src = 'picture/gaowanfashe.png';
+  gaowanfasheImg.onload = () => { CharacterImages.gaowanfashe = gaowanfasheImg; checkAllLoaded(); };
+  gaowanfasheImg.onerror = () => { checkAllLoaded(); };
 })();
 
 const CHARACTER_POOL = [
@@ -122,6 +135,17 @@ const CHARACTER_POOL = [
     skillType: 'bullet',
     imageKey: 'gunman',
     shootingImageKey: 'shooting'
+  },
+  {
+    id: 5,
+    name: '台灣館長',
+    color: '#1a1a1a',
+    radius: 94,
+    displaySize: 188,
+    octagonRadius: 100,
+    skillType: 'gaowan',
+    imageKey: 'guanzhang',
+    shootingImageKey: 'gaowanfashe'
   }
 ];
 
@@ -303,6 +327,38 @@ const Game = {
 
       if (proj.type === 'bullet') continue;
 
+      if (proj.type === 'shockwave') {
+        for (const ch of this.fieldCharacters) {
+          if (!ch.alive || ch.id === proj.ownerId) continue;
+          if (proj.hitTargets.has(ch.id)) continue;
+          if (Physics.dist(proj.x, proj.y, ch.x, ch.y) < proj.radius) {
+            ch.takeDamage(proj.damage);
+            proj.hitTargets.add(ch.id);
+            const existing = this.floatingTexts.find(ft =>
+              ft.targetId === ch.id && ft.life > 0.85
+            );
+            if (existing) {
+              existing.totalDmg += proj.damage;
+              existing.text = `-${existing.totalDmg}`;
+              existing.life = 1;
+            } else {
+              this.floatingTexts.push({
+                x: ch.x + (Math.random() - 0.5) * 40,
+                y: ch.y - ch.radius - 10,
+                text: `-${proj.damage}`,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 60,
+                vy: -40 - Math.random() * 30,
+                life: 1,
+                targetId: ch.id,
+                totalDmg: proj.damage
+              });
+            }
+          }
+        }
+        continue;
+      }
+
       let hitWall = false;
       if (proj.x - proj.radius < GAME_OFFSET_X) { proj.x = GAME_OFFSET_X + proj.radius; hitWall = true; }
       if (proj.x + proj.radius > GAME_OFFSET_X + GAME_SIZE) { proj.x = GAME_OFFSET_X + GAME_SIZE - proj.radius; hitWall = true; }
@@ -440,6 +496,15 @@ const Game = {
         proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.id);
         BeerSound.currentTime = 0;
         BeerSound.play().catch(() => {});
+        break;
+      case 'gaowan':
+        ch.isAttacking = true;
+        ch.attackAnimTimer = 0.4;
+        ch.facingRight = dx >= 0;
+        GaowanSound.currentTime = 0;
+        GaowanSound.play().catch(() => {});
+        this.projectiles.push(createShockwave(ch.x, ch.y, ch.id));
+        proj = createGaowan(ch.x, ch.y, dx, dy, ch.id);
         break;
     }
     if (proj) {

@@ -32,6 +32,9 @@ class Character {
     this.fireInterval = 0.125;
     this.fireTimer = 0;
     this.burstDirection = 0;
+    this.isAttacking = false;
+    this.attackAnimTimer = 0;
+    this.facingRight = true;
 
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 8;
@@ -89,6 +92,14 @@ class Character {
 
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+
+    if (this.isAttacking) {
+      this.attackAnimTimer -= dt;
+      if (this.attackAnimTimer <= 0) {
+        this.isAttacking = false;
+        this.attackAnimTimer = 0;
+      }
+    }
 
     if (this.skillType === 'bullet') {
       if (this.burstCooldownTimer > 0) {
