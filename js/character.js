@@ -34,7 +34,7 @@ class Character {
     this.burstDirection = 0;
 
     this.swayTimer = Math.random() * Math.PI * 2;
-    this.swayFreq = 3.5;
+    this.swayFreq = 8;
     this.swayAmplitude = 250;
 
     const angle = Math.random() * Math.PI * 2;
