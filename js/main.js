@@ -677,10 +677,9 @@ const Game = {
       } else {
         dmg = 45;
         punchType = 'normal';
-        const tempVx = enemy.vx;
-        const tempVy = enemy.vy;
-        enemy.vx = -tempVx;
-        enemy.vy = -tempVy;
+        const knockAngle = Math.atan2(dy, dx);
+        enemy.vx = Math.cos(knockAngle) * 200;
+        enemy.vy = Math.sin(knockAngle) * 200;
         ch.savedAngle = Math.atan2(ch.vy, ch.vx);
         ch.isPaused = true;
         ch.pauseTimer = 0.1;
