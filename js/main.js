@@ -529,8 +529,10 @@ const Game = {
           if (ch.id === proj.ownerId) continue;
           if (Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2) < ORBIT_RADIUS) {
             proj.isOrbiting = true;
-            proj.orbitAngle = Math.random() * Math.PI * 2;
+            proj.orbitAngle = Math.atan2(proj.y - ch.y, proj.x - ch.x);
             proj.orbitingThinker = ch;
+            proj.x = ch.x + Math.cos(proj.orbitAngle) * ORBIT_RADIUS;
+            proj.y = ch.y + Math.sin(proj.orbitAngle) * ORBIT_RADIUS;
             isOrbiting = true;
             break;
           }
