@@ -161,6 +161,8 @@ const Game = {
   searchText: '',
   searchFocused: false,
   endingPlayed: false,
+  scrollOffset: 0,
+  scrollDrag: null,
 
   init() {
     this.fieldCharacters = [];
@@ -173,6 +175,8 @@ const Game = {
     this.searchText = '';
     this.searchFocused = false;
     this.endingPlayed = false;
+    this.scrollOffset = 0;
+    this.scrollDrag = null;
   },
 
   getFilteredPool() {
@@ -216,11 +220,15 @@ const Game = {
     const panelTop = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+      const panelRight = px + PANEL_WIDTH;
+      if (mx < px || mx > panelRight) continue;
       for (let i = 0; i < filtered.length; i++) {
-        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP);
+        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP) - this.scrollOffset;
         const cardX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
-        if (mx >= cardX && mx <= cardX + CARD_WIDTH && my >= cy && my <= cy + CARD_HEIGHT) {
-          return CHARACTER_POOL.indexOf(filtered[i]);
+        if (my >= cy && my <= cy + CARD_HEIGHT) {
+          if (mx >= cardX && mx <= cardX + CARD_WIDTH) {
+            return CHARACTER_POOL.indexOf(filtered[i]);
+          }
         }
       }
     }
@@ -254,6 +262,12 @@ const Game = {
   isInField(mx, my) {
     return mx >= GAME_OFFSET_X && mx <= GAME_OFFSET_X + CANVAS_SIZE &&
            my >= GAME_OFFSET_Y && my <= GAME_OFFSET_Y + CANVAS_SIZE;
+  },
+
+  isOnPanel(mx, my) {
+    return mx >= 0 && mx <= PANEL_WIDTH ||
+           mx >= PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP &&
+           mx <= TOTAL_WIDTH;
   },
 
   update(dt) {
@@ -518,7 +532,7 @@ const Game = {
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
 
     if (this.state === 'INIT') {
-      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused);
+      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused, this.scrollOffset);
     }
 
     for (const ch of this.fieldCharacters) {
@@ -604,32 +618,53 @@ canvas.addEventListener('mousedown', (e) => {
     return;
   }
 
-  if (Game.fieldCharacters.length >= 2) return;
-
   const poolIdx = Game.getPoolIndexAt(mx, my);
   if (poolIdx >= 0) {
-    const config = CHARACTER_POOL[poolIdx];
-    if (Game.fieldCharacters.some(c => c.id === config.id)) return;
-    Game.drag = {
-      config: config,
-      x: mx,
-      y: my,
-      offsetX: 0,
-      offsetY: 0,
-      fromField: false,
-      fieldIndex: -1
-    };
+    if (Game.fieldCharacters.length < 2) {
+      const config = CHARACTER_POOL[poolIdx];
+      if (!Game.fieldCharacters.some(c => c.id === config.id)) {
+        Game.drag = {
+          config: config,
+          x: mx,
+          y: my,
+          offsetX: 0,
+          offsetY: 0,
+          fromField: false,
+          fieldIndex: -1
+        };
+        return;
+      }
+    }
+  }
+
+  if (Game.isOnPanel(mx, my)) {
+    Game.scrollDrag = { startY: my, startOffset: Game.scrollOffset };
   }
 });
 
 canvas.addEventListener('mousemove', (e) => {
-  if (!Game.drag) return;
-  const rect = canvas.getBoundingClientRect();
-  Game.drag.x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  Game.drag.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  if (Game.drag) {
+    const rect = canvas.getBoundingClientRect();
+    Game.drag.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    Game.drag.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  }
+  if (Game.scrollDrag) {
+    const rect = canvas.getBoundingClientRect();
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const filtered = Game.getFilteredPool();
+    const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+    const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+    const maxScroll = Math.max(0, cardListHeight - visibleHeight);
+    Game.scrollOffset = Math.max(0, Math.min(maxScroll,
+      Game.scrollDrag.startOffset + (Game.scrollDrag.startY - my)));
+  }
 });
 
 canvas.addEventListener('mouseup', (e) => {
+  if (Game.scrollDrag) {
+    Game.scrollDrag = null;
+    return;
+  }
   if (!Game.drag) return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -692,6 +727,17 @@ canvas.addEventListener('click', (e) => {
     }
   }
 });
+
+canvas.addEventListener('wheel', (e) => {
+  if (Game.state !== 'INIT') return;
+  const filtered = Game.getFilteredPool();
+  const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+  const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+  const maxScroll = Math.max(0, cardListHeight - visibleHeight);
+  Game.scrollOffset = Math.max(0, Math.min(maxScroll,
+    Game.scrollOffset + e.deltaY));
+  e.preventDefault();
+}, { passive: false });
 
 document.addEventListener('keydown', (e) => {
   if (Game.state !== 'INIT' || !Game.searchFocused) return;

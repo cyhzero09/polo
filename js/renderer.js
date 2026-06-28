@@ -17,7 +17,7 @@ const Renderer = {
     ctx.strokeRect(GAME_OFFSET_X + 4, HEADER_HEIGHT + 4, w - 8, h - 8);
   },
 
-  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused) {
+  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused, scrollOffset) {
     const fieldIds = fieldCharacters.map(c => c.id);
     const q = searchText.toLowerCase();
     const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
@@ -55,9 +55,17 @@ const Renderer = {
       }
 
       const cardTop = panelTop + SEARCH_BOX_HEIGHT + 10;
+      const clipY = cardTop;
+      const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(px, clipY, panelWidth, clipH);
+      ctx.clip();
+
       for (let i = 0; i < filtered.length; i++) {
         const config = filtered[i];
-        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP);
+        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP) - scrollOffset;
         const inField = fieldIds.includes(config.id);
         const cardX = px + (panelWidth - CARD_WIDTH) / 2;
 
@@ -93,6 +101,8 @@ const Renderer = {
         ctx.textBaseline = 'top';
         ctx.fillText(config.name, cardX + CARD_WIDTH / 2, imgY + imgSize + 5);
       }
+
+      ctx.restore();
 
       if (filtered.length === 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
