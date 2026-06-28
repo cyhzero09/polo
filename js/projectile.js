@@ -132,7 +132,7 @@ function createGaowan(x, y, dirX, dirY, ownerId) {
     damage: GAOWAN_DAMAGE,
     ownerId,
     type: 'gaowan',
-    radius: 50,
+    radius: 75,
     color: '#ff4444',
     image: GaowanImage,
     rotation: angle + Math.PI / 2
