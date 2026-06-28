@@ -389,6 +389,60 @@ const Renderer = {
         ctx.textBaseline = 'middle';
         ctx.fillText(ch.name, x, y);
       }
+    } else if (ch.skillType === 'thinker') {
+      if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+        ctx.drawImage(ch.image, x - half, y - half, size, size);
+        Renderer.applyFlash(ctx, ch, ch.image, x - half, y - half, size, size);
+      } else {
+        ctx.save();
+        ctx.shadowColor = ch.color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ch.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const gradient = ctx.createRadialGradient(x - ch.radius * 0.3, y - ch.radius * 0.3, ch.radius * 0.1, x, y, ch.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.restore();
+        if (ch.hitFlashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch.name, x, y);
+      }
+      if (ch.orbitProjectiles) {
+        const pr = 15;
+        for (const p of ch.orbitProjectiles) {
+          ctx.save();
+          ctx.shadowColor = '#7B1FA2';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
+          ctx.fillStyle = '#E1BEE7';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = '#7B1FA2';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
       Renderer.applyFlash(ctx, ch, ch.image, x - half, y - half, size, size);

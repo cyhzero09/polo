@@ -63,12 +63,13 @@ const CharacterImages = {
   boxer_uppercut: null,
   boxer_heavypunch: null,
   boxer_miss: null,
+  thinker: null,
   loaded: false
 };
 
 (function loadImages() {
   let loaded = 0;
-  const total = 22;
+  const total = 23;
   function checkAllLoaded() {
     loaded++;
     if (loaded < total) return;
@@ -149,6 +150,11 @@ const CharacterImages = {
   missImg.src = 'picture/boxingmaster/miss.png';
   missImg.onload = () => { CharacterImages.boxer_miss = missImg; checkAllLoaded(); };
   missImg.onerror = () => { checkAllLoaded(); };
+
+  const thinkerImg = new Image();
+  thinkerImg.src = 'picture/thinking.png';
+  thinkerImg.onload = () => { CharacterImages.thinker = thinkerImg; checkAllLoaded(); };
+  thinkerImg.onerror = () => { checkAllLoaded(); };
 })();
 
 const CHARACTER_POOL = [
@@ -220,6 +226,20 @@ const CHARACTER_POOL = [
     uppercutImageKey: 'boxer_uppercut',
     heavyPunchImageKey: 'boxer_heavypunch',
     dodgeImageKey: 'boxer_miss'
+  },
+  {
+    id: 7,
+    name: '沉思男人',
+    color: '#9C27B0',
+    radius: 75,
+    displaySize: 150,
+    octagonRadius: 80,
+    skillType: 'thinker',
+    imageKey: 'thinker',
+    orbitCount: 4,
+    orbitRadius: 80,
+    orbitSpeed: 2,
+    orbitDamage: 40
   }
 ];
 
@@ -276,6 +296,12 @@ const Game = {
       ch.vy = Math.sin(angle) * SPEED;
       if (ch.skillType === 'bullet') {
         ch.burstCooldownTimer = ch.burstCooldown;
+      }
+      if (ch.skillType === 'thinker') {
+        ch.orbitProjectiles = [];
+        for (let i = 0; i < ch.orbitCount; i++) {
+          ch.orbitProjectiles.push({ angle: (Math.PI * 2 / ch.orbitCount) * i, hitTimers: {} });
+        }
       }
     }
   },
@@ -431,6 +457,8 @@ const Game = {
             this.fireBulletLine(ch);
           }
         }
+      } else if (ch.skillType === 'thinker') {
+        // no-op: orbit is handled separately
       } else {
         if (ch.skillTimer >= ch.skillCooldown) {
           this.fireSkill(ch);
@@ -445,6 +473,57 @@ const Game = {
         const c2 = this.fieldCharacters[j];
         if (!c1.alive || !c2.alive) continue;
         Physics.resolveCharacterCollision(c1, c2);
+      }
+    }
+
+    const ORBIT_PROJECTILE_RADIUS = 15;
+
+    for (const ch of this.fieldCharacters) {
+      if (!ch.alive || ch.skillType !== 'thinker') continue;
+      for (const p of ch.orbitProjectiles) {
+        p.angle -= ch.orbitSpeed * dt;
+        p.x = ch.x + Math.cos(p.angle) * ch.orbitRadius;
+        p.y = ch.y + Math.sin(p.angle) * ch.orbitRadius;
+        for (const id in p.hitTimers) {
+          p.hitTimers[id] -= dt;
+          if (p.hitTimers[id] <= 0) delete p.hitTimers[id];
+        }
+      }
+    }
+
+    for (const ch of this.fieldCharacters) {
+      if (!ch.alive || ch.skillType !== 'thinker') continue;
+      for (const p of ch.orbitProjectiles) {
+        for (const target of this.fieldCharacters) {
+          if (!target.alive) continue;
+          if (p.hitTimers[target.id] > 0) continue;
+          const dist = Math.sqrt((p.x - target.x) ** 2 + (p.y - target.y) ** 2);
+          if (dist < target.radius + ORBIT_PROJECTILE_RADIUS) {
+            if (tryDodge(target)) continue;
+            target.takeDamage(ch.orbitDamage, true);
+            p.hitTimers[target.id] = 1;
+            const existing = this.floatingTexts.find(ft =>
+              ft.targetId === target.id && ft.life > 0.85
+            );
+            if (existing) {
+              existing.totalDmg += ch.orbitDamage;
+              existing.text = `-${existing.totalDmg}`;
+              existing.life = 1;
+            } else {
+              this.floatingTexts.push({
+                x: target.x + (Math.random() - 0.5) * 40,
+                y: target.y - target.radius - 10,
+                text: `-${ch.orbitDamage}`,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 60,
+                vy: -40 - Math.random() * 30,
+                life: 1,
+                targetId: target.id,
+                totalDmg: ch.orbitDamage
+              });
+            }
+          }
+        }
       }
     }
 
@@ -951,7 +1030,11 @@ canvas.addEventListener('mouseup', (e) => {
         handImage: handImage,
         uppercutImage: uppercutImage,
         heavyPunchImage: heavyPunchImage,
-        dodgeImage: dodgeImage
+        dodgeImage: dodgeImage,
+        orbitCount: config.orbitCount,
+        orbitRadius: config.orbitRadius,
+        orbitSpeed: config.orbitSpeed,
+        orbitDamage: config.orbitDamage
       });
       ch.x = mx;
       ch.y = my;
