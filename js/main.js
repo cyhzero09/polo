@@ -646,7 +646,26 @@ canvas.addEventListener('mousedown', (e) => {
 
   const panelSide = Game.isOnPanel(mx);
   if (panelSide >= 0) {
-    Game.scrollDrag = { side: panelSide, startY: my, startOffset: Game.scrollOffsets[panelSide] };
+    const px = panelSide === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+    const sbX = px + PANEL_WIDTH - 8;
+    if (mx >= sbX && mx <= sbX + 6) {
+      const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
+      const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+      const filtered = Game.getFilteredPool();
+      const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+      const maxScroll = Game.getMaxScroll(panelSide);
+      const thumbH = Math.max(20, clipH * clipH / Math.max(cardListHeight, clipH));
+      const trackH = clipH - thumbH;
+      const thumbTop = clipY + (trackH > 0 ? (Game.scrollOffsets[panelSide] / Math.max(maxScroll, 1)) * trackH : 0);
+      if (my >= thumbTop && my <= thumbTop + thumbH) {
+        Game.scrollDrag = { side: panelSide, startY: my - thumbTop, type: 'thumb' };
+      } else {
+        const clickRatio = (my - clipY) / clipH;
+        Game.scrollOffsets[panelSide] = Math.max(0, Math.min(maxScroll, clickRatio * maxScroll));
+      }
+    } else {
+      Game.scrollDrag = { side: panelSide, startY: my, startOffset: Game.scrollOffsets[panelSide], type: 'drag' };
+    }
   }
 });
 
@@ -661,8 +680,19 @@ canvas.addEventListener('mousemove', (e) => {
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
     const side = Game.scrollDrag.side;
     const maxScroll = Game.getMaxScroll(side);
-    Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
-      Game.scrollDrag.startOffset + (Game.scrollDrag.startY - my)));
+    if (Game.scrollDrag.type === 'thumb') {
+      const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
+      const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+      const filtered = Game.getFilteredPool();
+      const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+      const thumbH = Math.max(20, clipH * clipH / Math.max(cardListHeight, clipH));
+      const trackH = clipH - thumbH;
+      const ratio = trackH > 0 ? (my - clipY - Game.scrollDrag.startY) / trackH : 0;
+      Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll, ratio * maxScroll));
+    } else {
+      Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
+        Game.scrollDrag.startOffset + (Game.scrollDrag.startY - my)));
+    }
   }
 });
 
