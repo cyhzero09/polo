@@ -327,7 +327,7 @@ const Game = {
             ch.takeDamage(proj.damage);
             if (proj.hitTargets) proj.hitTargets.add(ch.id);
             const existing = this.floatingTexts.find(ft =>
-              ft.targetId === ch.id && ft.life > 0.7
+              ft.targetId === ch.id && ft.life > 0.85
             );
             if (existing) {
               existing.totalDmg += proj.damage;
