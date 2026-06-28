@@ -513,6 +513,7 @@ const Game = {
       if (proj.isOrbiting) {
         if (!proj.orbitingThinker || !proj.orbitingThinker.alive) {
           proj.isOrbiting = false;
+          delete proj._prevOrbitDist;
         } else {
           proj.orbitAngle -= ORBIT_SPEED * dt;
           proj.x = proj.orbitingThinker.x + Math.cos(proj.orbitAngle) * ORBIT_RADIUS;
@@ -524,18 +525,30 @@ const Game = {
       }
 
       if (!proj.isOrbiting) {
+        if (!proj._prevOrbitDist) proj._prevOrbitDist = {};
         for (const ch of this.fieldCharacters) {
           if (!ch.alive || ch.skillType !== 'thinker') continue;
           if (ch.id === proj.ownerId) continue;
-          if (Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2) < ORBIT_RADIUS) {
-            proj.isOrbiting = true;
-            proj.orbitAngle = Math.atan2(proj.y - ch.y, proj.x - ch.x);
-            proj.orbitingThinker = ch;
-            proj.x = ch.x + Math.cos(proj.orbitAngle) * ORBIT_RADIUS;
-            proj.y = ch.y + Math.sin(proj.orbitAngle) * ORBIT_RADIUS;
-            isOrbiting = true;
-            break;
+
+          const dist = Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2);
+          const prevDist = proj._prevOrbitDist[ch.id];
+
+          if (prevDist !== undefined) {
+            const crossedIn = prevDist >= ORBIT_RADIUS && dist < ORBIT_RADIUS;
+            const crossedOut = prevDist < ORBIT_RADIUS && dist >= ORBIT_RADIUS;
+            if (crossedIn || crossedOut) {
+              const angle = Math.atan2(proj.y - ch.y, proj.x - ch.x);
+              proj.isOrbiting = true;
+              proj.orbitAngle = angle;
+              proj.orbitingThinker = ch;
+              proj.x = ch.x + Math.cos(angle) * ORBIT_RADIUS;
+              proj.y = ch.y + Math.sin(angle) * ORBIT_RADIUS;
+              isOrbiting = true;
+              break;
+            }
           }
+
+          proj._prevOrbitDist[ch.id] = dist;
         }
       }
 
@@ -556,10 +569,19 @@ const Game = {
         }
       }
 
+      if (proj.type === 'briefcase' && proj._inContact) {
+        for (const chId of proj._inContact) {
+          const ch = this.fieldCharacters.find(c => c.id === chId);
+          if (!ch || !ch.alive || !Physics.isCircleOctagonColliding(proj, ch)) {
+            proj._inContact.delete(chId);
+          }
+        }
+      }
+
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
-        if (!isOrbiting && ch.id === proj.ownerId) continue;
-        if (proj.hitTargets && proj.hitTargets.has(ch.id)) continue;
+        if (ch.id === proj.ownerId && (!isOrbiting || proj.age < 1)) continue;
+        if (proj._inContact && proj._inContact.has(ch.id)) continue;
 
           if (Physics.isCircleOctagonColliding(proj, ch)) {
             if (tryDodge(ch)) {
@@ -567,7 +589,7 @@ const Game = {
               break;
             }
             ch.takeDamage(proj.damage);
-            if (proj.hitTargets) proj.hitTargets.add(ch.id);
+            if (proj._inContact) proj._inContact.add(ch.id);
             const existing = this.floatingTexts.find(ft =>
               ft.targetId === ch.id && ft.life > 0.85
             );

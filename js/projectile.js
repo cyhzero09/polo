@@ -47,9 +47,11 @@ class Projectile {
     this.isOrbiting = false;
     this.orbitAngle = 0;
     this.orbitingThinker = null;
+    this.age = 0;
   }
 
   update(dt) {
+    this.age += dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     if (this.type === 'beer') {
@@ -90,7 +92,7 @@ function createBriefcase(x, y, dirX, dirY, ownerId) {
     color: '#4ECDC4',
     image: BriefcaseImage
   });
-  p.hitTargets = new Set();
+  p._inContact = new Set();
   return p;
 }
 
