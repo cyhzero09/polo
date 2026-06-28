@@ -37,6 +37,8 @@ class Character {
     this.swayFreq = 8;
     this.swayAmplitude = 250;
 
+    this.stumbleTimer = Math.random() * 0.5 + 0.3;
+
     const angle = Math.random() * Math.PI * 2;
     this.speed = SPEED;
     this.vx = Math.cos(angle) * SPEED;
@@ -73,6 +75,16 @@ class Character {
       const sway = Math.sin(this.swayTimer) * this.swayAmplitude;
       this.x += perpX * sway * dt;
       this.y += perpY * sway * dt;
+
+      this.stumbleTimer -= dt;
+      if (this.stumbleTimer <= 0) {
+        this.stumbleTimer = Math.random() * 0.5 + 0.3;
+        const currentAngle = Math.atan2(this.vy, this.vx);
+        const offset = (Math.random() - 0.5) * 2 * (Math.PI / 3);
+        const newAngle = currentAngle + offset;
+        this.vx = Math.cos(newAngle) * this.speed;
+        this.vy = Math.sin(newAngle) * this.speed;
+      }
     }
 
     this.x += this.vx * dt;
