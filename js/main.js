@@ -323,18 +323,29 @@ const Game = {
         if (ch.id === proj.ownerId) continue;
         if (proj.hitTargets && proj.hitTargets.has(ch.id)) continue;
 
-        if (Physics.isCircleOctagonColliding(proj, ch)) {
-          ch.takeDamage(proj.damage);
-          if (proj.hitTargets) proj.hitTargets.add(ch.id);
-          this.floatingTexts.push({
-            x: ch.x + (Math.random() - 0.5) * 40,
-            y: ch.y - ch.radius - 10,
-            text: `-${proj.damage}`,
-            alpha: 1,
-            vx: (Math.random() - 0.5) * 60,
-            vy: -40 - Math.random() * 30,
-            life: 1
-          });
+          if (Physics.isCircleOctagonColliding(proj, ch)) {
+            ch.takeDamage(proj.damage);
+            if (proj.hitTargets) proj.hitTargets.add(ch.id);
+            const existing = this.floatingTexts.find(ft =>
+              ft.targetId === ch.id && ft.life > 0.7
+            );
+            if (existing) {
+              existing.totalDmg += proj.damage;
+              existing.text = `-${existing.totalDmg}`;
+              existing.life = 1;
+            } else {
+              this.floatingTexts.push({
+                x: ch.x + (Math.random() - 0.5) * 40,
+                y: ch.y - ch.radius - 10,
+                text: `-${proj.damage}`,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 60,
+                vy: -40 - Math.random() * 30,
+                life: 1,
+                targetId: ch.id,
+                totalDmg: proj.damage
+              });
+            }
           if (proj.type !== 'briefcase') {
             proj.alive = false;
           }
@@ -381,15 +392,26 @@ const Game = {
 
     if (hitEnemy) {
       hitEnemy.takeDamage(BULLET_DAMAGE);
-      this.floatingTexts.push({
-        x: hitEnemy.x + (Math.random() - 0.5) * 40,
-        y: hitEnemy.y - hitEnemy.radius - 10,
-        text: `-${BULLET_DAMAGE}`,
-        alpha: 1,
-        vx: (Math.random() - 0.5) * 60,
-        vy: -40 - Math.random() * 30,
-        life: 1
-      });
+      const existing = this.floatingTexts.find(ft =>
+        ft.targetId === hitEnemy.id && ft.life > 0.7
+      );
+      if (existing) {
+        existing.totalDmg += BULLET_DAMAGE;
+        existing.text = `-${existing.totalDmg}`;
+        existing.life = 1;
+      } else {
+        this.floatingTexts.push({
+          x: hitEnemy.x + (Math.random() - 0.5) * 40,
+          y: hitEnemy.y - hitEnemy.radius - 10,
+          text: `-${BULLET_DAMAGE}`,
+          alpha: 1,
+          vx: (Math.random() - 0.5) * 60,
+          vy: -40 - Math.random() * 30,
+          life: 1,
+          targetId: hitEnemy.id,
+          totalDmg: BULLET_DAMAGE
+        });
+      }
       endX = hitEnemy.x;
     } else {
       endX = dir > 0 ? GAME_OFFSET_X + CANVAS_SIZE : GAME_OFFSET_X;
