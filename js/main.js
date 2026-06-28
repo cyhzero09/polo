@@ -25,6 +25,7 @@ AttackSound.volume = 0.5;
 const EndingSound = new Audio('audio/dang.mp3');
 EndingSound.volume = 0.2;
 const GaowanSound = new Audio('audio/gaowan.mp3');
+const ShuaKaSound = new Audio('audio/shuaka.mp3');
 
 const CharacterImages = {
   lady: null,
@@ -513,6 +514,8 @@ const Game = {
         break;
       case 'briefcase':
         proj = createBriefcase(ch.x, ch.y, dx, dy, ch.id);
+        ShuaKaSound.currentTime = 0;
+        ShuaKaSound.play().catch(() => {});
         break;
       case 'beer':
         proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.id);
