@@ -144,6 +144,7 @@ const CHARACTER_POOL = [
     displaySize: 188,
     octagonRadius: 100,
     skillType: 'gaowan',
+    skillCooldown: 5000,
     imageKey: 'guanzhang',
     shootingImageKey: 'gaowanfashe'
   }
@@ -499,7 +500,7 @@ const Game = {
         break;
       case 'gaowan':
         ch.isAttacking = true;
-        ch.attackAnimTimer = 0.4;
+        ch.attackAnimTimer = 1;
         ch.facingRight = dx >= 0;
         GaowanSound.currentTime = 0;
         GaowanSound.play().catch(() => {});
@@ -661,6 +662,7 @@ canvas.addEventListener('mouseup', (e) => {
         displaySize: config.displaySize,
         octagonRadius: config.octagonRadius,
         skillType: config.skillType,
+        skillCooldown: config.skillCooldown,
         image: image,
         animFrames: animFrames,
         shootingImage: shootingImage

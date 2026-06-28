@@ -16,8 +16,8 @@ class Character {
     this.maxHp = config.maxHp || MAX_HP;
     this.hp = this.maxHp;
     this.alive = true;
-    this.skillCooldown = SKILL_COOLDOWN;
-    this.skillTimer = Math.random() * SKILL_COOLDOWN;
+    this.skillCooldown = config.skillCooldown || SKILL_COOLDOWN;
+    this.skillTimer = Math.random() * this.skillCooldown;
     this.image = config.image || null;
     this.animFrames = config.animFrames || null;
     this.animTimer = 0;
