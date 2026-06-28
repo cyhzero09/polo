@@ -272,8 +272,6 @@ const Renderer = {
       } else if (ch.lastPunchType === 'heavy' && ch.heavyPunchImage && ch.heavyPunchImage.complete && ch.heavyPunchImage.naturalWidth > 0) {
         drawAspect(ch.heavyPunchImage, flip, x, y);
       } else if (ch.lastPunchType === 'normal' && ch.bodyImage && ch.bodyImage.complete && ch.bodyImage.naturalWidth > 0) {
-        drawAspect(ch.bodyImage, flip, x, y);
-
         const enemy = ch.targetEnemy;
         if (ch.handImage && ch.handImage.complete && ch.handImage.naturalWidth > 0 && ch.punchAnimTimer > 0 && enemy && enemy.alive) {
           const angle = Math.atan2(enemy.y - y, enemy.x - x);
@@ -304,6 +302,8 @@ const Renderer = {
           ctx.drawImage(ch.handImage, -dw / 2, -dh / 2, dw, dh);
           ctx.restore();
         }
+
+        drawAspect(ch.bodyImage, flip, x, y);
       } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
         drawAspect(ch.image, flip, x, y);
       } else {
