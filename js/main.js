@@ -656,7 +656,7 @@ const Game = {
       ch.punchTimer = 0.1;
       let dmg, punchType, sound;
 
-      if (dy < -30) {
+      if (dy < -40 && Math.abs(dx) < 60) {
         dmg = 125;
         punchType = 'uppercut';
         enemy.vx = Math.sign(dx) * 200;
