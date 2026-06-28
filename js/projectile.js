@@ -43,6 +43,10 @@ class Projectile {
     this.image = config.image || null;
     this.alive = true;
     this.rotation = config.rotation || 0;
+
+    this.isOrbiting = false;
+    this.orbitAngle = 0;
+    this.orbitingThinker = null;
   }
 
   update(dt) {

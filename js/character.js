@@ -61,8 +61,6 @@ class Character {
     this.heavyPunchImage = config.heavyPunchImage || null;
     this.dodgeImage = config.dodgeImage || null;
 
-    this.orbitProjectiles = [];
-
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 8;
     this.swayAmplitude = 250;

@@ -8,8 +8,7 @@ const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
-const ABSORB_RADIUS = 100;
-const ORBIT_RADIUS = 100;
+const ORBIT_RADIUS = 200;
 const ORBIT_SPEED = 2;
 
 const SEARCH_BOX_HEIGHT = 36;
@@ -470,61 +469,6 @@ const Game = {
       }
     }
 
-    for (const ch of this.fieldCharacters) {
-      if (!ch.alive || ch.skillType !== 'thinker') continue;
-      for (const p of ch.orbitProjectiles) {
-        p.angle -= ORBIT_SPEED * dt;
-        p.x = ch.x + Math.cos(p.angle) * ORBIT_RADIUS;
-        p.y = ch.y + Math.sin(p.angle) * ORBIT_RADIUS;
-
-        const minX = GAME_OFFSET_X + p.radius;
-        const maxX = GAME_OFFSET_X + GAME_SIZE - p.radius;
-        const minY = GAME_OFFSET_Y + p.radius;
-        const maxY = GAME_OFFSET_Y + GAME_SIZE - p.radius;
-        const atWall = p.x < minX || p.x > maxX || p.y < minY || p.y > maxY;
-        p.x = Math.max(minX, Math.min(maxX, p.x));
-        p.y = Math.max(minY, Math.min(maxY, p.y));
-
-        for (const target of this.fieldCharacters) {
-          if (!target.alive) continue;
-          if (p.hitTimers[target.id] > 0) continue;
-          if (Math.sqrt((p.x - target.x) ** 2 + (p.y - target.y) ** 2) < target.radius + p.radius) {
-            if (tryDodge(target)) continue;
-            target.takeDamage(p.damage, true);
-            p.hitTimers[target.id] = 1;
-            const existing = this.floatingTexts.find(ft =>
-              ft.targetId === target.id && ft.life > 0.85
-            );
-            if (existing) {
-              existing.totalDmg += p.damage;
-              existing.text = `-${existing.totalDmg}`;
-              existing.life = 1;
-            } else {
-              this.floatingTexts.push({
-                x: target.x + (Math.random() - 0.5) * 40,
-                y: target.y - target.radius - 10,
-                text: `-${p.damage}`,
-                alpha: 1,
-                vx: (Math.random() - 0.5) * 60,
-                vy: -40 - Math.random() * 30,
-                life: 1,
-                targetId: target.id,
-                totalDmg: p.damage
-              });
-            }
-          }
-        }
-
-        if (atWall) p._remove = true;
-
-        for (const id in p.hitTimers) {
-          p.hitTimers[id] -= dt;
-          if (p.hitTimers[id] <= 0) delete p.hitTimers[id];
-        }
-      }
-      ch.orbitProjectiles = ch.orbitProjectiles.filter(p => !p._remove);
-    }
-
     for (const proj of this.projectiles) {
       if (!proj.alive) continue;
       proj.update(dt);
@@ -564,45 +508,55 @@ const Game = {
         continue;
       }
 
-      let hitWall = false;
-      if (proj.x - proj.radius < GAME_OFFSET_X) { proj.x = GAME_OFFSET_X + proj.radius; hitWall = true; }
-      if (proj.x + proj.radius > GAME_OFFSET_X + GAME_SIZE) { proj.x = GAME_OFFSET_X + GAME_SIZE - proj.radius; hitWall = true; }
-      if (proj.y - proj.radius < GAME_OFFSET_Y) { proj.y = GAME_OFFSET_Y + proj.radius; hitWall = true; }
-      if (proj.y + proj.radius > GAME_OFFSET_Y + GAME_SIZE) { proj.y = GAME_OFFSET_Y + GAME_SIZE - proj.radius; hitWall = true; }
+      let isOrbiting = false;
 
-      if (hitWall) {
-        if (proj.type === 'briefcase') {
-          const papers = splitBriefcase(proj);
-          for (const p of papers) this.projectiles.push(p);
+      if (proj.isOrbiting) {
+        if (!proj.orbitingThinker || !proj.orbitingThinker.alive) {
+          proj.isOrbiting = false;
+        } else {
+          proj.orbitAngle -= ORBIT_SPEED * dt;
+          proj.x = proj.orbitingThinker.x + Math.cos(proj.orbitAngle) * ORBIT_RADIUS;
+          proj.y = proj.orbitingThinker.y + Math.sin(proj.orbitAngle) * ORBIT_RADIUS;
+          proj.x = Math.max(GAME_OFFSET_X + proj.radius, Math.min(GAME_OFFSET_X + GAME_SIZE - proj.radius, proj.x));
+          proj.y = Math.max(GAME_OFFSET_Y + proj.radius, Math.min(GAME_OFFSET_Y + GAME_SIZE - proj.radius, proj.y));
+          isOrbiting = true;
         }
-        proj.alive = false;
-        continue;
       }
 
-      let absorbed = false;
-      for (const ch of this.fieldCharacters) {
-        if (!ch.alive || ch.skillType !== 'thinker') continue;
-        if (ch.id === proj.ownerId) continue;
-        if (Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2) < ABSORB_RADIUS) {
-          ch.orbitProjectiles.push({
-            angle: Math.random() * Math.PI * 2,
-            damage: proj.damage,
-            type: proj.type,
-            image: proj.image || null,
-            color: proj.color,
-            radius: proj.radius,
-            hitTimers: {}
-          });
+      if (!proj.isOrbiting) {
+        for (const ch of this.fieldCharacters) {
+          if (!ch.alive || ch.skillType !== 'thinker') continue;
+          if (ch.id === proj.ownerId) continue;
+          if (Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2) < ORBIT_RADIUS) {
+            proj.isOrbiting = true;
+            proj.orbitAngle = Math.random() * Math.PI * 2;
+            proj.orbitingThinker = ch;
+            isOrbiting = true;
+            break;
+          }
+        }
+      }
+
+      if (!isOrbiting) {
+        let hitWall = false;
+        if (proj.x - proj.radius < GAME_OFFSET_X) { proj.x = GAME_OFFSET_X + proj.radius; hitWall = true; }
+        if (proj.x + proj.radius > GAME_OFFSET_X + GAME_SIZE) { proj.x = GAME_OFFSET_X + GAME_SIZE - proj.radius; hitWall = true; }
+        if (proj.y - proj.radius < GAME_OFFSET_Y) { proj.y = GAME_OFFSET_Y + proj.radius; hitWall = true; }
+        if (proj.y + proj.radius > GAME_OFFSET_Y + GAME_SIZE) { proj.y = GAME_OFFSET_Y + GAME_SIZE - proj.radius; hitWall = true; }
+
+        if (hitWall) {
+          if (proj.type === 'briefcase') {
+            const papers = splitBriefcase(proj);
+            for (const p of papers) this.projectiles.push(p);
+          }
           proj.alive = false;
-          absorbed = true;
-          break;
+          continue;
         }
       }
-      if (absorbed) continue;
 
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
-        if (ch.id === proj.ownerId) continue;
+        if (!isOrbiting && ch.id === proj.ownerId) continue;
         if (proj.hitTargets && proj.hitTargets.has(ch.id)) continue;
 
           if (Physics.isCircleOctagonColliding(proj, ch)) {

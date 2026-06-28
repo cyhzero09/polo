@@ -426,26 +426,6 @@ const Renderer = {
         ctx.textBaseline = 'middle';
         ctx.fillText(ch.name, x, y);
       }
-      if (ch.orbitProjectiles) {
-        for (const op of ch.orbitProjectiles) {
-          if (op.image && op.image.complete && op.image.naturalWidth > 0) {
-            const iw = op.image.naturalWidth;
-            const ih = op.image.naturalHeight;
-            const dw = op.radius * 2;
-            const dh = (ih / iw) * dw;
-            ctx.drawImage(op.image, op.x - dw / 2, op.y - dh / 2, dw, dh);
-          } else {
-            ctx.save();
-            ctx.shadowColor = op.color;
-            ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.arc(op.x, op.y, op.radius, 0, Math.PI * 2);
-            ctx.fillStyle = op.color;
-            ctx.fill();
-            ctx.restore();
-          }
-        }
-      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
       Renderer.applyFlash(ctx, ch, ch.image, x - half, y - half, size, size);
