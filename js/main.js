@@ -9,7 +9,7 @@ const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
 const ABSORB_RADIUS = 100;
-const ORBIT_RADIUS = 80;
+const ORBIT_RADIUS = 100;
 const ORBIT_SPEED = 2;
 
 const SEARCH_BOX_HEIGHT = 36;
@@ -476,21 +476,19 @@ const Game = {
         p.angle -= ORBIT_SPEED * dt;
         p.x = ch.x + Math.cos(p.angle) * ORBIT_RADIUS;
         p.y = ch.y + Math.sin(p.angle) * ORBIT_RADIUS;
-        for (const id in p.hitTimers) {
-          p.hitTimers[id] -= dt;
-          if (p.hitTimers[id] <= 0) delete p.hitTimers[id];
-        }
-      }
-    }
 
-    for (const ch of this.fieldCharacters) {
-      if (!ch.alive || ch.skillType !== 'thinker') continue;
-      for (const p of ch.orbitProjectiles) {
+        const minX = GAME_OFFSET_X + p.radius;
+        const maxX = GAME_OFFSET_X + GAME_SIZE - p.radius;
+        const minY = GAME_OFFSET_Y + p.radius;
+        const maxY = GAME_OFFSET_Y + GAME_SIZE - p.radius;
+        const atWall = p.x < minX || p.x > maxX || p.y < minY || p.y > maxY;
+        p.x = Math.max(minX, Math.min(maxX, p.x));
+        p.y = Math.max(minY, Math.min(maxY, p.y));
+
         for (const target of this.fieldCharacters) {
           if (!target.alive) continue;
           if (p.hitTimers[target.id] > 0) continue;
-          const dist = Math.sqrt((p.x - target.x) ** 2 + (p.y - target.y) ** 2);
-          if (dist < target.radius + p.radius) {
+          if (Math.sqrt((p.x - target.x) ** 2 + (p.y - target.y) ** 2) < target.radius + p.radius) {
             if (tryDodge(target)) continue;
             target.takeDamage(p.damage, true);
             p.hitTimers[target.id] = 1;
@@ -516,7 +514,15 @@ const Game = {
             }
           }
         }
+
+        if (atWall) p._remove = true;
+
+        for (const id in p.hitTimers) {
+          p.hitTimers[id] -= dt;
+          if (p.hitTimers[id] <= 0) delete p.hitTimers[id];
+        }
       }
+      ch.orbitProjectiles = ch.orbitProjectiles.filter(p => !p._remove);
     }
 
     for (const proj of this.projectiles) {
