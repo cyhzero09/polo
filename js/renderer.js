@@ -252,30 +252,27 @@ const Renderer = {
     } else if (ch.skillType === 'boxer') {
       const flip = ch.facingRight;
 
+      const drawAspect = (img, flipImg, cx, cy) => {
+        const iw = img.naturalWidth;
+        const ih = img.naturalHeight;
+        const scale = Math.min(size / iw, size / ih);
+        const dw = iw * scale;
+        const dh = ih * scale;
+        ctx.save();
+        ctx.translate(cx, cy);
+        if (flipImg) ctx.scale(-1, 1);
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      };
+
       if (ch.isDodging && ch.dodgeImage && ch.dodgeImage.complete && ch.dodgeImage.naturalWidth > 0) {
-        ctx.save();
-        ctx.translate(x, y);
-        if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(ch.dodgeImage, -half, -half, size, size);
-        ctx.restore();
+        drawAspect(ch.dodgeImage, flip, x, y);
       } else if (ch.lastPunchType === 'uppercut' && ch.uppercutImage && ch.uppercutImage.complete && ch.uppercutImage.naturalWidth > 0) {
-        ctx.save();
-        ctx.translate(x, y);
-        if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(ch.uppercutImage, -half, -half, size, size);
-        ctx.restore();
+        drawAspect(ch.uppercutImage, flip, x, y);
       } else if (ch.lastPunchType === 'heavy' && ch.heavyPunchImage && ch.heavyPunchImage.complete && ch.heavyPunchImage.naturalWidth > 0) {
-        ctx.save();
-        ctx.translate(x, y);
-        if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(ch.heavyPunchImage, -half, -half, size, size);
-        ctx.restore();
+        drawAspect(ch.heavyPunchImage, flip, x, y);
       } else if (ch.lastPunchType === 'normal' && ch.bodyImage && ch.bodyImage.complete && ch.bodyImage.naturalWidth > 0) {
-        ctx.save();
-        ctx.translate(x, y);
-        if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(ch.bodyImage, -half, -half, size, size);
-        ctx.restore();
+        drawAspect(ch.bodyImage, flip, x, y);
 
         const enemy = ch.targetEnemy;
         if (ch.handImage && ch.handImage.complete && ch.handImage.naturalWidth > 0 && ch.punchAnimTimer > 0 && enemy && enemy.alive) {
@@ -286,24 +283,27 @@ const Renderer = {
 
           const hx = x + Math.cos(angle) * handOffset;
           const hy = y + Math.sin(angle) * handOffset;
+
+          const iw = ch.handImage.naturalWidth;
+          const ih = ch.handImage.naturalHeight;
+          const s = Math.min(size / iw, size / ih);
+          const dw = iw * s;
+          const dh = ih * s;
+
           ctx.save();
           ctx.globalAlpha = handAlpha;
           ctx.translate(hx, hy);
           if (flip) {
             ctx.scale(-1, 1);
-            ctx.rotate(angle);
+            ctx.rotate(-angle);
           } else {
             ctx.rotate(angle - Math.PI);
           }
-          ctx.drawImage(ch.handImage, -half, -half, size, size);
+          ctx.drawImage(ch.handImage, -dw / 2, -dh / 2, dw, dh);
           ctx.restore();
         }
       } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
-        ctx.save();
-        ctx.translate(x, y);
-        if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(ch.image, -half, -half, size, size);
-        ctx.restore();
+        drawAspect(ch.image, flip, x, y);
       } else {
         ctx.save();
         ctx.shadowColor = ch.color;
