@@ -524,7 +524,7 @@ const Game = {
         break;
       case 'gaowan':
         ch.isAttacking = true;
-        ch.attackAnimTimer = 1;
+        ch.attackAnimTimer = 1.5;
         ch.facingRight = dx >= 0;
         GaowanSound.currentTime = 0;
         GaowanSound.play().catch(() => {});
