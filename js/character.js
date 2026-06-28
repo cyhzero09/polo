@@ -77,7 +77,7 @@ class Character {
       this.hp = 0;
       this.alive = false;
     }
-    this.hitFlashTimer = 0.2;
+    this.hitFlashTimer = 0.1;
     if (!silent && typeof AttackSound !== 'undefined') {
       AttackSound.currentTime = 0;
       AttackSound.play().catch(() => {});

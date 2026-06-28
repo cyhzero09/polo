@@ -369,7 +369,7 @@ const Renderer = {
 
     if (ch.hitFlashTimer > 0) {
       ctx.save();
-      ctx.globalAlpha = Math.min(1, ch.hitFlashTimer * 5);
+      ctx.globalAlpha = 0.8;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x - half, y - half, size, size);
       ctx.restore();
