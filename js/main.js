@@ -21,6 +21,25 @@ canvas.width = TOTAL_WIDTH;
 canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
 const ctx = canvas.getContext('2d');
 
+function fitCanvas() {
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const ratio = cw / ch;
+  let cssW, cssH;
+  if (window.innerWidth / window.innerHeight > ratio) {
+    cssH = window.innerHeight;
+    cssW = cssH * ratio;
+  } else {
+    cssW = window.innerWidth;
+    cssH = cssW / ratio;
+  }
+  canvas.style.width = Math.floor(cssW) + 'px';
+  canvas.style.height = Math.floor(cssH) + 'px';
+}
+window.addEventListener('resize', fitCanvas);
+window.addEventListener('orientationchange', fitCanvas);
+fitCanvas();
+
 const BeerSound = new Audio('audio/alababier.mp3');
 const YahuSound = new Audio('audio/yahu.mp3');
 const AttackSound = new Audio('audio/attack.mp3');
@@ -879,7 +898,8 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
-canvas.addEventListener('mousedown', (e) => {
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
   if (Game.state !== 'INIT') return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -950,7 +970,8 @@ canvas.addEventListener('mousedown', (e) => {
   }
 });
 
-canvas.addEventListener('mousemove', (e) => {
+canvas.addEventListener('pointermove', (e) => {
+  e.preventDefault();
   if (Game.drag) {
     const rect = canvas.getBoundingClientRect();
     Game.drag.x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -977,7 +998,8 @@ canvas.addEventListener('mousemove', (e) => {
   }
 });
 
-canvas.addEventListener('mouseup', (e) => {
+canvas.addEventListener('pointerup', (e) => {
+  e.preventDefault();
   if (Game.scrollDrag) {
     Game.scrollDrag = null;
     return;
@@ -1078,4 +1100,9 @@ document.addEventListener('keydown', (e) => {
     Game.searchText += e.key;
     e.preventDefault();
   }
+});
+
+canvas.addEventListener('pointercancel', (e) => {
+  if (Game.drag) Game.drag = null;
+  if (Game.scrollDrag) Game.scrollDrag = null;
 });
