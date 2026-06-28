@@ -17,7 +17,7 @@ const Renderer = {
     ctx.strokeRect(GAME_OFFSET_X + 4, HEADER_HEIGHT + 4, w - 8, h - 8);
   },
 
-  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused, scrollOffset) {
+  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused, scrollOffsets) {
     const fieldIds = fieldCharacters.map(c => c.id);
     const q = searchText.toLowerCase();
     const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
@@ -65,7 +65,7 @@ const Renderer = {
 
       for (let i = 0; i < filtered.length; i++) {
         const config = filtered[i];
-        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP) - scrollOffset;
+        const cy = cardTop + i * (CARD_HEIGHT + CARD_GAP) - scrollOffsets[side];
         const inField = fieldIds.includes(config.id);
         const cardX = px + (panelWidth - CARD_WIDTH) / 2;
 
@@ -103,6 +103,21 @@ const Renderer = {
       }
 
       ctx.restore();
+
+      const maxScroll = Math.max(0, filtered.length * (CARD_HEIGHT + CARD_GAP) - clipH);
+      if (maxScroll > 0) {
+        const sbX = px + panelWidth - 8;
+        const sbH = clipH;
+        const thumbH = Math.max(20, clipH * clipH / (filtered.length * (CARD_HEIGHT + CARD_GAP)));
+        const trackH = sbH - thumbH;
+        const thumbPos = trackH > 0 ? (scrollOffsets[side] / maxScroll) * trackH : 0;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(sbX, clipY, 6, sbH);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(sbX, clipY + thumbPos, 6, thumbH);
+      }
 
       if (filtered.length === 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.4)';

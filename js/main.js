@@ -161,7 +161,7 @@ const Game = {
   searchText: '',
   searchFocused: false,
   endingPlayed: false,
-  scrollOffset: 0,
+  scrollOffsets: [0, 0],
   scrollDrag: null,
 
   init() {
@@ -175,7 +175,7 @@ const Game = {
     this.searchText = '';
     this.searchFocused = false;
     this.endingPlayed = false;
-    this.scrollOffset = 0;
+    this.scrollOffsets = [0, 0];
     this.scrollDrag = null;
   },
 
@@ -223,7 +223,7 @@ const Game = {
       const panelRight = px + PANEL_WIDTH;
       if (mx < px || mx > panelRight) continue;
       for (let i = 0; i < filtered.length; i++) {
-        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP) - this.scrollOffset;
+        const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP) - this.scrollOffsets[side];
         const cardX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
         if (my >= cy && my <= cy + CARD_HEIGHT) {
           if (mx >= cardX && mx <= cardX + CARD_WIDTH) {
@@ -264,10 +264,17 @@ const Game = {
            my >= GAME_OFFSET_Y && my <= GAME_OFFSET_Y + CANVAS_SIZE;
   },
 
-  isOnPanel(mx, my) {
-    return mx >= 0 && mx <= PANEL_WIDTH ||
-           mx >= PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP &&
-           mx <= TOTAL_WIDTH;
+  isOnPanel(mx) {
+    if (mx >= 0 && mx <= PANEL_WIDTH) return 0;
+    if (mx >= PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP && mx <= TOTAL_WIDTH) return 1;
+    return -1;
+  },
+
+  getMaxScroll(side) {
+    const filtered = this.getFilteredPool();
+    const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+    const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+    return Math.max(0, cardListHeight - visibleHeight);
   },
 
   update(dt) {
@@ -532,7 +539,7 @@ const Game = {
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
 
     if (this.state === 'INIT') {
-      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused, this.scrollOffset);
+      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused, this.scrollOffsets);
     }
 
     for (const ch of this.fieldCharacters) {
@@ -637,8 +644,9 @@ canvas.addEventListener('mousedown', (e) => {
     }
   }
 
-  if (Game.isOnPanel(mx, my)) {
-    Game.scrollDrag = { startY: my, startOffset: Game.scrollOffset };
+  const panelSide = Game.isOnPanel(mx);
+  if (panelSide >= 0) {
+    Game.scrollDrag = { side: panelSide, startY: my, startOffset: Game.scrollOffsets[panelSide] };
   }
 });
 
@@ -651,11 +659,9 @@ canvas.addEventListener('mousemove', (e) => {
   if (Game.scrollDrag) {
     const rect = canvas.getBoundingClientRect();
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-    const filtered = Game.getFilteredPool();
-    const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
-    const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
-    const maxScroll = Math.max(0, cardListHeight - visibleHeight);
-    Game.scrollOffset = Math.max(0, Math.min(maxScroll,
+    const side = Game.scrollDrag.side;
+    const maxScroll = Game.getMaxScroll(side);
+    Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
       Game.scrollDrag.startOffset + (Game.scrollDrag.startY - my)));
   }
 });
@@ -730,12 +736,13 @@ canvas.addEventListener('click', (e) => {
 
 canvas.addEventListener('wheel', (e) => {
   if (Game.state !== 'INIT') return;
-  const filtered = Game.getFilteredPool();
-  const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
-  const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
-  const maxScroll = Math.max(0, cardListHeight - visibleHeight);
-  Game.scrollOffset = Math.max(0, Math.min(maxScroll,
-    Game.scrollOffset + e.deltaY));
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const side = Game.isOnPanel(mx);
+  if (side < 0) return;
+  const maxScroll = Game.getMaxScroll(side);
+  Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
+    Game.scrollOffsets[side] + e.deltaY));
   e.preventDefault();
 }, { passive: false });
 
