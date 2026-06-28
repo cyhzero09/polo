@@ -661,13 +661,16 @@ const Game = {
         punchType = 'uppercut';
         enemy.vx = Math.sign(dx) * 200;
         enemy.vy = -500;
+        enemy.knockbackTimer = 0.3;
         ch.vx = -Math.sign(dx) * 300;
+        ch.knockbackTimer = 0.3;
         sound = HeavyPunchSound;
       } else if (Math.abs(dy) < 30) {
         dmg = 100;
         punchType = 'heavy';
         enemy.vx = Math.sign(dx) * 500;
         enemy.vy = 0;
+        enemy.knockbackTimer = 0.3;
         ch.savedAngle = Math.atan2(ch.vy, ch.vx);
         ch.isPaused = true;
         ch.pauseTimer = 0.1;

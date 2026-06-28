@@ -36,6 +36,7 @@ class Character {
     this.attackAnimTimer = 0;
     this.facingRight = true;
     this.collisionSoundCooldown = 0;
+    this.knockbackTimer = 0;
 
     this.isPaused = false;
     this.pauseTimer = 0;
@@ -115,6 +116,15 @@ class Character {
 
     if (this.collisionSoundCooldown > 0) {
       this.collisionSoundCooldown -= dt;
+    }
+
+    if (this.knockbackTimer > 0) {
+      this.knockbackTimer -= dt;
+      if (this.knockbackTimer <= 0) {
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        this.vx = (this.vx / speed) * SPEED;
+        this.vy = (this.vy / speed) * SPEED;
+      }
     }
 
     if (this.isAttacking) {
