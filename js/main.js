@@ -8,6 +8,10 @@ const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
+const ABSORB_RADIUS = 100;
+const ORBIT_RADIUS = 80;
+const ORBIT_SPEED = 2;
+
 const SEARCH_BOX_HEIGHT = 36;
 const CARD_HEIGHT = 150;
 const CARD_GAP = 12;
@@ -235,11 +239,7 @@ const CHARACTER_POOL = [
     displaySize: 150,
     octagonRadius: 80,
     skillType: 'thinker',
-    imageKey: 'thinker',
-    orbitCount: 4,
-    orbitRadius: 80,
-    orbitSpeed: 2,
-    orbitDamage: 40
+    imageKey: 'thinker'
   }
 ];
 
@@ -296,12 +296,6 @@ const Game = {
       ch.vy = Math.sin(angle) * SPEED;
       if (ch.skillType === 'bullet') {
         ch.burstCooldownTimer = ch.burstCooldown;
-      }
-      if (ch.skillType === 'thinker') {
-        ch.orbitProjectiles = [];
-        for (let i = 0; i < ch.orbitCount; i++) {
-          ch.orbitProjectiles.push({ angle: (Math.PI * 2 / ch.orbitCount) * i, hitTimers: {} });
-        }
       }
     }
   },
@@ -476,14 +470,12 @@ const Game = {
       }
     }
 
-    const ORBIT_PROJECTILE_RADIUS = 15;
-
     for (const ch of this.fieldCharacters) {
       if (!ch.alive || ch.skillType !== 'thinker') continue;
       for (const p of ch.orbitProjectiles) {
-        p.angle -= ch.orbitSpeed * dt;
-        p.x = ch.x + Math.cos(p.angle) * ch.orbitRadius;
-        p.y = ch.y + Math.sin(p.angle) * ch.orbitRadius;
+        p.angle -= ORBIT_SPEED * dt;
+        p.x = ch.x + Math.cos(p.angle) * ORBIT_RADIUS;
+        p.y = ch.y + Math.sin(p.angle) * ORBIT_RADIUS;
         for (const id in p.hitTimers) {
           p.hitTimers[id] -= dt;
           if (p.hitTimers[id] <= 0) delete p.hitTimers[id];
@@ -498,28 +490,28 @@ const Game = {
           if (!target.alive) continue;
           if (p.hitTimers[target.id] > 0) continue;
           const dist = Math.sqrt((p.x - target.x) ** 2 + (p.y - target.y) ** 2);
-          if (dist < target.radius + ORBIT_PROJECTILE_RADIUS) {
+          if (dist < target.radius + p.radius) {
             if (tryDodge(target)) continue;
-            target.takeDamage(ch.orbitDamage, true);
+            target.takeDamage(p.damage, true);
             p.hitTimers[target.id] = 1;
             const existing = this.floatingTexts.find(ft =>
               ft.targetId === target.id && ft.life > 0.85
             );
             if (existing) {
-              existing.totalDmg += ch.orbitDamage;
+              existing.totalDmg += p.damage;
               existing.text = `-${existing.totalDmg}`;
               existing.life = 1;
             } else {
               this.floatingTexts.push({
                 x: target.x + (Math.random() - 0.5) * 40,
                 y: target.y - target.radius - 10,
-                text: `-${ch.orbitDamage}`,
+                text: `-${p.damage}`,
                 alpha: 1,
                 vx: (Math.random() - 0.5) * 60,
                 vy: -40 - Math.random() * 30,
                 life: 1,
                 targetId: target.id,
-                totalDmg: ch.orbitDamage
+                totalDmg: p.damage
               });
             }
           }
@@ -580,6 +572,27 @@ const Game = {
         proj.alive = false;
         continue;
       }
+
+      let absorbed = false;
+      for (const ch of this.fieldCharacters) {
+        if (!ch.alive || ch.skillType !== 'thinker') continue;
+        if (ch.id === proj.ownerId) continue;
+        if (Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2) < ABSORB_RADIUS) {
+          ch.orbitProjectiles.push({
+            angle: Math.random() * Math.PI * 2,
+            damage: proj.damage,
+            type: proj.type,
+            image: proj.image || null,
+            color: proj.color,
+            radius: proj.radius,
+            hitTimers: {}
+          });
+          proj.alive = false;
+          absorbed = true;
+          break;
+        }
+      }
+      if (absorbed) continue;
 
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
@@ -1030,11 +1043,7 @@ canvas.addEventListener('mouseup', (e) => {
         handImage: handImage,
         uppercutImage: uppercutImage,
         heavyPunchImage: heavyPunchImage,
-        dodgeImage: dodgeImage,
-        orbitCount: config.orbitCount,
-        orbitRadius: config.orbitRadius,
-        orbitSpeed: config.orbitSpeed,
-        orbitDamage: config.orbitDamage
+        dodgeImage: dodgeImage
       });
       ch.x = mx;
       ch.y = my;

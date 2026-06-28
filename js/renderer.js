@@ -427,20 +427,23 @@ const Renderer = {
         ctx.fillText(ch.name, x, y);
       }
       if (ch.orbitProjectiles) {
-        const pr = 15;
-        for (const p of ch.orbitProjectiles) {
-          ctx.save();
-          ctx.shadowColor = '#7B1FA2';
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
-          ctx.fillStyle = '#E1BEE7';
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.strokeStyle = '#7B1FA2';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.restore();
+        for (const op of ch.orbitProjectiles) {
+          if (op.image && op.image.complete && op.image.naturalWidth > 0) {
+            const iw = op.image.naturalWidth;
+            const ih = op.image.naturalHeight;
+            const dw = op.radius * 2;
+            const dh = (ih / iw) * dw;
+            ctx.drawImage(op.image, op.x - dw / 2, op.y - dh / 2, dw, dh);
+          } else {
+            ctx.save();
+            ctx.shadowColor = op.color;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(op.x, op.y, op.radius, 0, Math.PI * 2);
+            ctx.fillStyle = op.color;
+            ctx.fill();
+            ctx.restore();
+          }
         }
       }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
