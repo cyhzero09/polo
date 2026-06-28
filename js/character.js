@@ -37,6 +37,7 @@ class Character {
     this.facingRight = true;
     this.collisionSoundCooldown = 0;
     this.knockbackTimer = 0;
+    this.hitFlashTimer = 0;
 
     this.isPaused = false;
     this.pauseTimer = 0;
@@ -76,6 +77,7 @@ class Character {
       this.hp = 0;
       this.alive = false;
     }
+    this.hitFlashTimer = 0.2;
     if (!silent && typeof AttackSound !== 'undefined') {
       AttackSound.currentTime = 0;
       AttackSound.play().catch(() => {});
@@ -116,6 +118,9 @@ class Character {
 
     if (this.collisionSoundCooldown > 0) {
       this.collisionSoundCooldown -= dt;
+    }
+    if (this.hitFlashTimer > 0) {
+      this.hitFlashTimer -= dt;
     }
 
     if (this.knockbackTimer > 0) {

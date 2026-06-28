@@ -367,6 +367,14 @@ const Renderer = {
       ctx.fillText(ch.name, x, y);
     }
 
+    if (ch.hitFlashTimer > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, ch.hitFlashTimer * 5);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x - half, y - half, size, size);
+      ctx.restore();
+    }
+
     this.drawCrossHealthBar(ctx, x, y - half, ch.hp, ch.maxHp);
   },
 
