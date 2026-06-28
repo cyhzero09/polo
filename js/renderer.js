@@ -286,7 +286,7 @@ const Renderer = {
 
           const iw = ch.handImage.naturalWidth;
           const ih = ch.handImage.naturalHeight;
-          const s = Math.min(size / iw, size / ih);
+          const s = Math.min(size / iw, size / ih) * 1.3;
           const dw = iw * s;
           const dh = ih * s;
 
