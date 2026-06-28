@@ -46,7 +46,7 @@ class Character {
     this.dodgeAnimTimer = 0;
     this.facingRight = true;
     this.dodgeChance = 0.1;
-    this.punchRange = 180;
+    this.punchRange = 230;
     this.targetEnemy = null;
     this.savedAngle = 0;
 
@@ -136,12 +136,6 @@ class Character {
         this.dodgeAnimTimer -= dt;
         if (this.dodgeAnimTimer <= 0) {
           this.isDodging = false;
-        }
-      }
-      if (this.isPaused) {
-        this.pauseTimer -= dt;
-        if (this.pauseTimer <= 0) {
-          this.isPaused = false;
         }
       }
     }
