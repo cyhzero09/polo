@@ -145,7 +145,7 @@ const CHARACTER_POOL = [
     displaySize: 188,
     octagonRadius: 100,
     skillType: 'gaowan',
-    skillCooldown: 4000,
+    skillCooldown: 3000,
     imageKey: 'guanzhang',
     shootingImageKey: 'gaowanfashe'
   }
