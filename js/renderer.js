@@ -249,6 +249,90 @@ const Renderer = {
         ctx.textBaseline = 'middle';
         ctx.fillText(ch.name, x, y);
       }
+    } else if (ch.skillType === 'boxer') {
+      const flip = ch.facingRight;
+
+      if (ch.isDodging && ch.dodgeImage && ch.dodgeImage.complete && ch.dodgeImage.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(ch.dodgeImage, -half, -half, size, size);
+        ctx.restore();
+      } else if (ch.lastPunchType === 'uppercut' && ch.uppercutImage && ch.uppercutImage.complete && ch.uppercutImage.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(ch.uppercutImage, -half, -half, size, size);
+        ctx.restore();
+      } else if (ch.lastPunchType === 'heavy' && ch.heavyPunchImage && ch.heavyPunchImage.complete && ch.heavyPunchImage.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(ch.heavyPunchImage, -half, -half, size, size);
+        ctx.restore();
+      } else if (ch.lastPunchType === 'normal' && ch.bodyImage && ch.bodyImage.complete && ch.bodyImage.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(ch.bodyImage, -half, -half, size, size);
+        ctx.restore();
+
+        const enemy = ch.targetEnemy;
+        if (ch.handImage && ch.handImage.complete && ch.handImage.naturalWidth > 0 && ch.punchAnimTimer > 0 && enemy && enemy.alive) {
+          const angle = Math.atan2(enemy.y - y, enemy.x - x);
+          const handOffset = 50;
+          const fadeDuration = 0.1;
+          const handAlpha = Math.min(1, ch.punchAnimTimer / fadeDuration);
+
+          const hx = x + Math.cos(angle) * handOffset;
+          const hy = y + Math.sin(angle) * handOffset;
+          ctx.save();
+          ctx.globalAlpha = handAlpha;
+          ctx.translate(hx, hy);
+          if (flip) {
+            ctx.scale(-1, 1);
+            ctx.rotate(angle);
+          } else {
+            ctx.rotate(angle - Math.PI);
+          }
+          ctx.drawImage(ch.handImage, -half, -half, size, size);
+          ctx.restore();
+        }
+      } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(ch.image, -half, -half, size, size);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.shadowColor = ch.color;
+        ctx.shadowBlur = 15;
+
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ch.color;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const gradient = ctx.createRadialGradient(x - ch.radius * 0.3, y - ch.radius * 0.3, ch.radius * 0.1, x, y, ch.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.restore();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch.name, x, y);
+      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
     } else {

@@ -28,6 +28,23 @@ const GaowanSound = new Audio('audio/gaowan.mp3');
 const ShuaKaSound = new Audio('audio/shuaka.mp3');
 const CollisionSound = new Audio('audio/collision.mp3');
 CollisionSound.volume = 0.4;
+const HeavyPunchSound = new Audio('audio/heavypunch.mp3');
+const LightPunchSound = new Audio('audio/lightpunch.mp3');
+const MissSound = new Audio('audio/miss.mp3');
+
+function tryDodge(ch) {
+  if (ch.skillType === 'boxer' && !ch.isDodging && Math.random() < ch.dodgeChance) {
+    ch.isDodging = true;
+    ch.dodgeAnimTimer = 0.3;
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    ch.x += dir * 100;
+    ch.x = Math.max(GAME_OFFSET_X + ch.radius, Math.min(GAME_OFFSET_X + GAME_SIZE - ch.radius, ch.x));
+    MissSound.currentTime = 0;
+    MissSound.play().catch(() => {});
+    return true;
+  }
+  return false;
+}
 
 const CharacterImages = {
   lady: null,
@@ -38,12 +55,18 @@ const CharacterImages = {
   shooting: null,
   guanzhang: null,
   gaowanfashe: null,
+  boxer: null,
+  boxer_body: null,
+  boxer_hand: null,
+  boxer_uppercut: null,
+  boxer_heavypunch: null,
+  boxer_miss: null,
   loaded: false
 };
 
 (function loadImages() {
   let loaded = 0;
-  const total = 16;
+  const total = 22;
   function checkAllLoaded() {
     loaded++;
     if (loaded < total) return;
@@ -94,6 +117,36 @@ const CharacterImages = {
   gaowanfasheImg.src = 'picture/gaowanfashe.png';
   gaowanfasheImg.onload = () => { CharacterImages.gaowanfashe = gaowanfasheImg; checkAllLoaded(); };
   gaowanfasheImg.onerror = () => { checkAllLoaded(); };
+
+  const boxerImg = new Image();
+  boxerImg.src = 'picture/boxingmaster/boxer.png';
+  boxerImg.onload = () => { CharacterImages.boxer = boxerImg; checkAllLoaded(); };
+  boxerImg.onerror = () => { checkAllLoaded(); };
+
+  const bodyImg = new Image();
+  bodyImg.src = 'picture/boxingmaster/body.png';
+  bodyImg.onload = () => { CharacterImages.boxer_body = bodyImg; checkAllLoaded(); };
+  bodyImg.onerror = () => { checkAllLoaded(); };
+
+  const handImg = new Image();
+  handImg.src = 'picture/boxingmaster/hand.png';
+  handImg.onload = () => { CharacterImages.boxer_hand = handImg; checkAllLoaded(); };
+  handImg.onerror = () => { checkAllLoaded(); };
+
+  const uppercutImg = new Image();
+  uppercutImg.src = 'picture/boxingmaster/uppercut.png';
+  uppercutImg.onload = () => { CharacterImages.boxer_uppercut = uppercutImg; checkAllLoaded(); };
+  uppercutImg.onerror = () => { checkAllLoaded(); };
+
+  const heavypunchImg = new Image();
+  heavypunchImg.src = 'picture/boxingmaster/heavypunch.png';
+  heavypunchImg.onload = () => { CharacterImages.boxer_heavypunch = heavypunchImg; checkAllLoaded(); };
+  heavypunchImg.onerror = () => { checkAllLoaded(); };
+
+  const missImg = new Image();
+  missImg.src = 'picture/boxingmaster/miss.png';
+  missImg.onload = () => { CharacterImages.boxer_miss = missImg; checkAllLoaded(); };
+  missImg.onerror = () => { checkAllLoaded(); };
 })();
 
 const CHARACTER_POOL = [
@@ -150,6 +203,21 @@ const CHARACTER_POOL = [
     skillCooldown: 3000,
     imageKey: 'guanzhang',
     shootingImageKey: 'gaowanfashe'
+  },
+  {
+    id: 6,
+    name: '拳擊高手',
+    color: '#e74c3c',
+    radius: 94,
+    displaySize: 188,
+    octagonRadius: 100,
+    skillType: 'boxer',
+    imageKey: 'boxer',
+    bodyImageKey: 'boxer_body',
+    handImageKey: 'boxer_hand',
+    uppercutImageKey: 'boxer_uppercut',
+    heavyPunchImageKey: 'boxer_heavypunch',
+    dodgeImageKey: 'boxer_miss'
   }
 ];
 
@@ -315,6 +383,12 @@ const Game = {
 
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
+
+      if (ch.skillType === 'boxer' && ch.isPaused) {
+        ch.vx = 0;
+        ch.vy = 0;
+      }
+
       const result = ch.update(dt);
       if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0) {
         ch.collisionSoundCooldown = 0.2;
@@ -322,7 +396,9 @@ const Game = {
         CollisionSound.play().catch(() => {});
       }
 
-      if (ch.skillType === 'bullet') {
+      if (ch.skillType === 'boxer') {
+        this.updateBoxer(ch, dt);
+      } else if (ch.skillType === 'bullet') {
         if (result === 'fire') {
           this.fireBulletLine(ch);
         }
@@ -365,6 +441,7 @@ const Game = {
           if (!ch.alive || ch.id === proj.ownerId) continue;
           if (proj.hitTargets.has(ch.id)) continue;
           if (Physics.dist(proj.x, proj.y, ch.x, ch.y) < proj.radius) {
+            if (tryDodge(ch)) continue;
             ch.takeDamage(proj.damage);
             proj.hitTargets.add(ch.id);
             const existing = this.floatingTexts.find(ft =>
@@ -413,6 +490,10 @@ const Game = {
         if (proj.hitTargets && proj.hitTargets.has(ch.id)) continue;
 
           if (Physics.isCircleOctagonColliding(proj, ch)) {
+            if (tryDodge(ch)) {
+              if (proj.type !== 'briefcase') proj.alive = false;
+              break;
+            }
             ch.takeDamage(proj.damage);
             if (proj.hitTargets) proj.hitTargets.add(ch.id);
             const existing = this.floatingTexts.find(ft =>
@@ -479,32 +560,34 @@ const Game = {
       }
     }
 
-    if (hitEnemy) {
-      hitEnemy.takeDamage(BULLET_DAMAGE);
-      const existing = this.floatingTexts.find(ft =>
-        ft.targetId === hitEnemy.id && ft.life > 0.7
-      );
-      if (existing) {
-        existing.totalDmg += BULLET_DAMAGE;
-        existing.text = `-${existing.totalDmg}`;
-        existing.life = 1;
+      if (hitEnemy) {
+        if (!tryDodge(hitEnemy)) {
+          hitEnemy.takeDamage(BULLET_DAMAGE);
+          const existing = this.floatingTexts.find(ft =>
+            ft.targetId === hitEnemy.id && ft.life > 0.7
+          );
+          if (existing) {
+            existing.totalDmg += BULLET_DAMAGE;
+            existing.text = `-${existing.totalDmg}`;
+            existing.life = 1;
+          } else {
+            this.floatingTexts.push({
+              x: hitEnemy.x + (Math.random() - 0.5) * 40,
+              y: hitEnemy.y - hitEnemy.radius - 10,
+              text: `-${BULLET_DAMAGE}`,
+              alpha: 1,
+              vx: (Math.random() - 0.5) * 60,
+              vy: -40 - Math.random() * 30,
+              life: 1,
+              targetId: hitEnemy.id,
+              totalDmg: BULLET_DAMAGE
+            });
+          }
+        }
+        endX = hitEnemy.x;
       } else {
-        this.floatingTexts.push({
-          x: hitEnemy.x + (Math.random() - 0.5) * 40,
-          y: hitEnemy.y - hitEnemy.radius - 10,
-          text: `-${BULLET_DAMAGE}`,
-          alpha: 1,
-          vx: (Math.random() - 0.5) * 60,
-          vy: -40 - Math.random() * 30,
-          life: 1,
-          targetId: hitEnemy.id,
-          totalDmg: BULLET_DAMAGE
-        });
+        endX = dir > 0 ? GAME_OFFSET_X + CANVAS_SIZE : GAME_OFFSET_X;
       }
-      endX = hitEnemy.x;
-    } else {
-      endX = dir > 0 ? GAME_OFFSET_X + CANVAS_SIZE : GAME_OFFSET_X;
-    }
 
     const ray = createBulletLine(ch.x, ch.y, endX, ch.id);
     this.projectiles.push(ray);
@@ -544,6 +627,95 @@ const Game = {
     }
     if (proj) {
       this.projectiles.push(proj);
+    }
+  },
+
+  updateBoxer(ch, dt) {
+    ch.punchTimer -= dt;
+
+    const enemy = ch.findNearestEnemy(this.fieldCharacters);
+    if (!enemy) return;
+
+    const dx = enemy.x - ch.x;
+    const dy = enemy.y - ch.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    ch.facingRight = dx >= 0;
+    ch.targetEnemy = enemy;
+
+    if (ch.isPaused) {
+      ch.pauseTimer -= dt;
+      if (ch.pauseTimer <= 0) {
+        ch.isPaused = false;
+        ch.vx = Math.cos(ch.savedAngle) * SPEED;
+        ch.vy = Math.sin(ch.savedAngle) * SPEED;
+      }
+    }
+
+    if (!ch.isPaused && ch.punchTimer <= 0 && dist < ch.punchRange) {
+      ch.punchTimer = 0.1;
+      let dmg, punchType, sound;
+
+      if (dy < -30) {
+        dmg = 125;
+        punchType = 'uppercut';
+        enemy.vx = Math.sign(dx) * 200;
+        enemy.vy = -500;
+        ch.vx = -Math.sign(dx) * 300;
+        sound = HeavyPunchSound;
+      } else if (Math.abs(dy) < 30) {
+        dmg = 100;
+        punchType = 'heavy';
+        enemy.vx = Math.sign(dx) * 500;
+        enemy.vy = 0;
+        ch.savedAngle = Math.atan2(ch.vy, ch.vx);
+        ch.isPaused = true;
+        ch.pauseTimer = 0.1;
+        ch.vx = 0;
+        ch.vy = 0;
+        sound = HeavyPunchSound;
+      } else {
+        dmg = 45;
+        punchType = 'normal';
+        const tempVx = enemy.vx;
+        const tempVy = enemy.vy;
+        enemy.vx = -tempVx;
+        enemy.vy = -tempVy;
+        ch.savedAngle = Math.atan2(ch.vy, ch.vx);
+        ch.isPaused = true;
+        ch.pauseTimer = 0.1;
+        ch.vx = 0;
+        ch.vy = 0;
+        sound = LightPunchSound;
+      }
+
+      enemy.takeDamage(dmg, true);
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+
+      ch.lastPunchType = punchType;
+      ch.punchAnimTimer = 0.1;
+
+      const existing = this.floatingTexts.find(ft =>
+        ft.targetId === enemy.id && ft.life > 0.85
+      );
+      if (existing) {
+        existing.totalDmg += dmg;
+        existing.text = `-${existing.totalDmg}`;
+        existing.life = 1;
+      } else {
+        this.floatingTexts.push({
+          x: enemy.x + (Math.random() - 0.5) * 40,
+          y: enemy.y - enemy.radius - 10,
+          text: `-${dmg}`,
+          alpha: 1,
+          vx: (Math.random() - 0.5) * 60,
+          vy: -40 - Math.random() * 30,
+          life: 1,
+          targetId: enemy.id,
+          totalDmg: dmg
+        });
+      }
     }
   },
 
@@ -738,6 +910,11 @@ canvas.addEventListener('mouseup', (e) => {
       const image = CharacterImages[config.imageKey];
       const animFrames = config.animKey ? CharacterImages[config.animKey] : null;
       const shootingImage = config.shootingImageKey ? CharacterImages[config.shootingImageKey] : null;
+      const bodyImage = config.bodyImageKey ? CharacterImages[config.bodyImageKey] : null;
+      const handImage = config.handImageKey ? CharacterImages[config.handImageKey] : null;
+      const uppercutImage = config.uppercutImageKey ? CharacterImages[config.uppercutImageKey] : null;
+      const heavyPunchImage = config.heavyPunchImageKey ? CharacterImages[config.heavyPunchImageKey] : null;
+      const dodgeImage = config.dodgeImageKey ? CharacterImages[config.dodgeImageKey] : null;
       const ch = new Character({
         id: config.id,
         name: config.name,
@@ -749,7 +926,12 @@ canvas.addEventListener('mouseup', (e) => {
         skillCooldown: config.skillCooldown,
         image: image,
         animFrames: animFrames,
-        shootingImage: shootingImage
+        shootingImage: shootingImage,
+        bodyImage: bodyImage,
+        handImage: handImage,
+        uppercutImage: uppercutImage,
+        heavyPunchImage: heavyPunchImage,
+        dodgeImage: dodgeImage
       });
       ch.x = mx;
       ch.y = my;

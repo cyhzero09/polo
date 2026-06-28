@@ -37,6 +37,25 @@ class Character {
     this.facingRight = true;
     this.collisionSoundCooldown = 0;
 
+    this.isPaused = false;
+    this.pauseTimer = 0;
+    this.punchTimer = 0;
+    this.punchAnimTimer = 0;
+    this.lastPunchType = '';
+    this.isDodging = false;
+    this.dodgeAnimTimer = 0;
+    this.facingRight = true;
+    this.dodgeChance = 0.1;
+    this.punchRange = 180;
+    this.targetEnemy = null;
+    this.savedAngle = 0;
+
+    this.bodyImage = config.bodyImage || null;
+    this.handImage = config.handImage || null;
+    this.uppercutImage = config.uppercutImage || null;
+    this.heavyPunchImage = config.heavyPunchImage || null;
+    this.dodgeImage = config.dodgeImage || null;
+
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 8;
     this.swayAmplitude = 250;
@@ -49,14 +68,14 @@ class Character {
     this.vy = Math.sin(angle) * SPEED;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, silent = false) {
     if (!this.alive) return;
     this.hp -= amount;
     if (this.hp <= 0) {
       this.hp = 0;
       this.alive = false;
     }
-    if (typeof AttackSound !== 'undefined') {
+    if (!silent && typeof AttackSound !== 'undefined') {
       AttackSound.currentTime = 0;
       AttackSound.play().catch(() => {});
     }
@@ -103,6 +122,27 @@ class Character {
       if (this.attackAnimTimer <= 0) {
         this.isAttacking = false;
         this.attackAnimTimer = 0;
+      }
+    }
+
+    if (this.skillType === 'boxer') {
+      if (this.punchAnimTimer > 0) {
+        this.punchAnimTimer -= dt;
+        if (this.punchAnimTimer <= 0) {
+          this.lastPunchType = '';
+        }
+      }
+      if (this.isDodging) {
+        this.dodgeAnimTimer -= dt;
+        if (this.dodgeAnimTimer <= 0) {
+          this.isDodging = false;
+        }
+      }
+      if (this.isPaused) {
+        this.pauseTimer -= dt;
+        if (this.pauseTimer <= 0) {
+          this.isPaused = false;
+        }
       }
     }
 
