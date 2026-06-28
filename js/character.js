@@ -47,7 +47,7 @@ class Character {
     this.dodgeAnimTimer = 0;
     this.facingRight = true;
     this.dodgeChance = 0.1;
-    this.punchRange = 230;
+    this.punchRange = 180;
     this.targetEnemy = null;
     this.savedAngle = 0;
 
