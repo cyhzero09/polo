@@ -14,8 +14,8 @@ const BULLET_DAMAGE = 60;
 const GAOWAN_DAMAGE = 150;
 const GAOWAN_SPEED = 450;
 const SHOCKWAVE_DAMAGE = 50;
-const SHOCKWAVE_MAX_RADIUS = 250;
-const SHOCKWAVE_EXPAND_SPEED = 400;
+const SHOCKWAVE_MAX_RADIUS = 400;
+const SHOCKWAVE_EXPAND_SPEED = 600;
 
 const NailImage = new Image();
 NailImage.src = 'picture/nail.png';
