@@ -46,6 +46,9 @@ class Character {
     this.lastPunchType = '';
     this.isDodging = false;
     this.dodgeAnimTimer = 0;
+    this.dodgeDir = 0;
+    this._dodgeSavedVx = 0;
+    this._dodgeSavedVy = 0;
     this.facingRight = true;
     this.dodgeChance = 0.1;
     this.punchRange = 180;
@@ -148,9 +151,12 @@ class Character {
         }
       }
       if (this.isDodging) {
+        this.x += this.dodgeDir * 1250 * dt;
         this.dodgeAnimTimer -= dt;
         if (this.dodgeAnimTimer <= 0) {
           this.isDodging = false;
+          this.vx = this._dodgeSavedVx;
+          this.vy = this._dodgeSavedVy;
         }
       }
     }

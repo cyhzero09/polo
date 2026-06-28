@@ -36,9 +36,11 @@ function tryDodge(ch) {
   if (ch.skillType === 'boxer' && !ch.isDodging && Math.random() < ch.dodgeChance) {
     ch.isDodging = true;
     ch.dodgeAnimTimer = 0.3;
-    const dir = Math.random() > 0.5 ? 1 : -1;
-    ch.x += dir * 100;
-    ch.x = Math.max(GAME_OFFSET_X + ch.radius, Math.min(GAME_OFFSET_X + GAME_SIZE - ch.radius, ch.x));
+    ch.dodgeDir = Math.random() > 0.5 ? 1 : -1;
+    ch._dodgeSavedVx = ch.vx;
+    ch._dodgeSavedVy = ch.vy;
+    ch.vx = 0;
+    ch.vy = 0;
     MissSound.currentTime = 0;
     MissSound.play().catch(() => {});
     return true;
@@ -260,10 +262,14 @@ const Game = {
     if (this.fieldCharacters.length < 2) return;
     this.state = 'COUNTDOWN';
     this.countdown = 3;
-    this.fieldCharacters[0].x = GAME_OFFSET_X + CANVAS_SIZE / 4;
-    this.fieldCharacters[0].y = GAME_OFFSET_Y + CANVAS_SIZE / 2;
-    this.fieldCharacters[1].x = GAME_OFFSET_X + CANVAS_SIZE * 3 / 4;
-    this.fieldCharacters[1].y = GAME_OFFSET_Y + CANVAS_SIZE / 2;
+    const sq = 100;
+    const cx0 = GAME_OFFSET_X + CANVAS_SIZE / 4;
+    const cx1 = GAME_OFFSET_X + CANVAS_SIZE * 3 / 4;
+    const cy = GAME_OFFSET_Y + CANVAS_SIZE / 2;
+    this.fieldCharacters[0].x = cx0 + (Math.random() - 0.5) * sq;
+    this.fieldCharacters[0].y = cy + (Math.random() - 0.5) * sq;
+    this.fieldCharacters[1].x = cx1 + (Math.random() - 0.5) * sq;
+    this.fieldCharacters[1].y = cy + (Math.random() - 0.5) * sq;
     for (const ch of this.fieldCharacters) {
       const angle = Math.random() * Math.PI * 2;
       ch.vx = Math.cos(angle) * SPEED;
@@ -390,10 +396,22 @@ const Game = {
       }
 
       const result = ch.update(dt);
-      if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0) {
+      const hitBoundary = Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0;
+      if (hitBoundary) {
         ch.collisionSoundCooldown = 0.2;
         CollisionSound.currentTime = 0;
         CollisionSound.play().catch(() => {});
+      }
+      if (ch.isDodging && ch.dodgeDir !== 0) {
+        const minX = GAME_OFFSET_X + ch.radius;
+        const maxX = GAME_OFFSET_X + GAME_SIZE - ch.radius;
+        if ((ch.dodgeDir > 0 && ch.x >= maxX) || (ch.dodgeDir < 0 && ch.x <= minX)) {
+          ch.isDodging = false;
+          ch.dodgeAnimTimer = 0;
+          ch.dodgeDir = 0;
+          ch.vx = ch._dodgeSavedVx;
+          ch.vy = ch._dodgeSavedVy;
+        }
       }
 
       if (ch.skillType === 'boxer') {

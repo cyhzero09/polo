@@ -1,3 +1,6 @@
+const _flashCvs = document.createElement('canvas');
+const _flashCtx = _flashCvs.getContext('2d');
+
 const Renderer = {
 
   bgColor: '#2196F3',
@@ -149,6 +152,26 @@ const Renderer = {
     ctx.restore();
   },
 
+  applyFlash(ctx, ch, img, dx, dy, dw, dh, flip) {
+    if (ch.hitFlashTimer <= 0) return;
+    const cw = Math.ceil(Math.abs(dw));
+    const ch2 = Math.ceil(Math.abs(dh));
+    if (cw < 1 || ch2 < 1) return;
+    _flashCvs.width = cw;
+    _flashCvs.height = ch2;
+    _flashCtx.save();
+    if (flip) _flashCtx.scale(-1, 1);
+    _flashCtx.drawImage(img, flip ? -cw : 0, 0, cw, ch2);
+    _flashCtx.restore();
+    _flashCtx.globalCompositeOperation = 'source-atop';
+    _flashCtx.globalAlpha = 0.8;
+    _flashCtx.fillStyle = '#ffffff';
+    _flashCtx.fillRect(0, 0, cw, ch2);
+    _flashCtx.globalCompositeOperation = 'source-over';
+    _flashCtx.globalAlpha = 1;
+    ctx.drawImage(_flashCvs, dx, dy, dw, dh);
+  },
+
   drawCharacter(ctx, ch) {
     const x = ch.x;
     const y = ch.y;
@@ -161,6 +184,7 @@ const Renderer = {
 
     if (currentFrame) {
       ctx.drawImage(currentFrame, x - half, y - half, size, size);
+      Renderer.applyFlash(ctx, ch, currentFrame, x - half, y - half, size, size);
     } else if (ch.skillType === 'bullet') {
       let img = null;
       if (ch.isShooting && ch.shootingImage && ch.shootingImage.complete && ch.shootingImage.naturalWidth > 0) {
@@ -176,6 +200,7 @@ const Renderer = {
         }
         ctx.drawImage(img, -half, -half, size, size);
         ctx.restore();
+        Renderer.applyFlash(ctx, ch, img, x - half, y - half, size, size, ch.isShooting && ch.burstDirection === 1);
       } else {
         ctx.save();
         ctx.shadowColor = ch.color;
@@ -198,6 +223,15 @@ const Renderer = {
         ctx.fill();
 
         ctx.restore();
+        if (ch.hitFlashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 12px "Microsoft YaHei", Arial';
@@ -220,6 +254,7 @@ const Renderer = {
         }
         ctx.drawImage(img, -half, -half, size, size);
         ctx.restore();
+        Renderer.applyFlash(ctx, ch, img, x - half, y - half, size, size, ch.facingRight);
       } else {
         ctx.save();
         ctx.shadowColor = ch.color;
@@ -242,6 +277,15 @@ const Renderer = {
         ctx.fill();
 
         ctx.restore();
+        if (ch.hitFlashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 12px "Microsoft YaHei", Arial';
@@ -263,6 +307,7 @@ const Renderer = {
         if (flipImg) ctx.scale(-1, 1);
         ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
+        Renderer.applyFlash(ctx, ch, img, cx - dw / 2, cy - dh / 2, dw, dh, flipImg);
       };
 
       if (ch.isDodging && ch.dodgeImage && ch.dodgeImage.complete && ch.dodgeImage.naturalWidth > 0) {
@@ -328,6 +373,15 @@ const Renderer = {
         ctx.fill();
 
         ctx.restore();
+        if (ch.hitFlashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 12px "Microsoft YaHei", Arial';
@@ -337,6 +391,7 @@ const Renderer = {
       }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
+      Renderer.applyFlash(ctx, ch, ch.image, x - half, y - half, size, size);
     } else {
       ctx.save();
       ctx.shadowColor = ch.color;
@@ -359,21 +414,21 @@ const Renderer = {
       ctx.fill();
 
       ctx.restore();
+      if (ch.hitFlashTimer > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+      }
 
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 12px "Microsoft YaHei", Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(ch.name, x, y);
-    }
-
-    if (ch.hitFlashTimer > 0) {
-      ctx.save();
-      ctx.globalAlpha = 0.8;
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x - half, y - half, size, size);
-      ctx.restore();
     }
 
     this.drawCrossHealthBar(ctx, x, y - half, ch.hp, ch.maxHp);
