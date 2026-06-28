@@ -277,12 +277,14 @@ const Renderer = {
         const enemy = ch.targetEnemy;
         if (ch.handImage && ch.handImage.complete && ch.handImage.naturalWidth > 0 && ch.punchAnimTimer > 0 && enemy && enemy.alive) {
           const angle = Math.atan2(enemy.y - y, enemy.x - x);
-          const handOffset = 50;
+          const handFwd = 55;
+          const handUp = 18;
+          const handSide = 12;
           const fadeDuration = 0.1;
           const handAlpha = Math.min(1, ch.punchAnimTimer / fadeDuration);
 
-          const hx = x + Math.cos(angle) * handOffset;
-          const hy = y + Math.sin(angle) * handOffset;
+          const hx = x + Math.cos(angle) * handFwd + Math.sin(angle) * handSide;
+          const hy = y + Math.sin(angle) * handFwd - Math.cos(angle) * handSide - handUp;
 
           const iw = ch.handImage.naturalWidth;
           const ih = ch.handImage.naturalHeight;
