@@ -449,6 +449,7 @@ const Game = {
           ch.dodgeDir = 0;
           ch.vx = ch._dodgeSavedVx;
           ch.vy = ch._dodgeSavedVy;
+          if (ch.vx === 0) ch.vx = (ch.x >= maxX ? -1 : 1) * SPEED;
         }
       }
 
