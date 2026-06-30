@@ -12,44 +12,163 @@ const Renderer = {
   },
 
   drawBorder(ctx, w, h) {
-    ctx.fillStyle = this.bgColor;
-    ctx.fillRect(GAME_OFFSET_X, 0, w, h);
+    if (isMobile) {
+      ctx.fillStyle = this.bgColor;
+      ctx.fillRect(fieldOffsetX, fieldOffsetY, w, h);
+    } else {
+      ctx.fillStyle = this.bgColor;
+      ctx.fillRect(fieldOffsetX, 0, w, h);
+    }
 
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 8;
-    ctx.strokeRect(GAME_OFFSET_X + 4, HEADER_HEIGHT + 4, w - 8, h - 8);
+    ctx.strokeRect(fieldOffsetX + 4, fieldOffsetY + 4, w - 8, h - 8);
   },
 
-  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchText, searchFocused, scrollOffsets) {
+  drawMobilePanels(ctx, fieldCharacters, drag, searchTexts, searchFocusedSide, scrollOffsets) {
     const fieldIds = fieldCharacters.map(c => c.id);
-    const q = searchText.toLowerCase();
+
+    // Top panel (side 0): search + character cards
+    const panelY = 0;
+    const localSearchText = searchTexts[0] || '';
+    const isFocused = searchFocusedSide === 0;
+    const q = localSearchText.toLowerCase();
     const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
+    const scrollOff = scrollOffsets[0] || 0;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(0, panelY, MOBILE_TOTAL_W, MOBILE_TOP_PANEL_H);
+
+    const searchX = 10;
+    const searchY = panelY + 4;
+    const searchW = CANVAS_SIZE - 20;
+    ctx.fillStyle = isFocused ? '#fff' : 'rgba(255,255,255,0.15)';
+    ctx.fillRect(searchX, searchY, searchW, MOBILE_SEARCH_H);
+    ctx.strokeStyle = isFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = isFocused ? 2 : 1;
+    ctx.strokeRect(searchX, searchY, searchW, MOBILE_SEARCH_H);
+
+    ctx.fillStyle = isFocused ? '#000' : 'rgba(255,255,255,0.5)';
+    ctx.font = '14px "Microsoft YaHei", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const displayText = localSearchText || '搜索角色...';
+    ctx.fillText(displayText, searchX + searchW / 2, searchY + MOBILE_SEARCH_H / 2);
+
+    if (isFocused) {
+      const tw = ctx.measureText(localSearchText).width;
+      const cursorX = searchX + searchW / 2 + tw / 2;
+      if (Math.floor(Date.now() / 500) % 2 === 0) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(cursorX, searchY + 6, 2, MOBILE_SEARCH_H - 12);
+      }
+    }
+
+    const innerY = panelY + MOBILE_SEARCH_H + 8;
+    const scrollY = panelY + MOBILE_TOP_PANEL_H - MOBILE_PANEL_SCROLL_H;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, innerY, MOBILE_TOTAL_W, MOBILE_PANEL_INNER_H);
+    ctx.clip();
+
+    for (let i = 0; i < filtered.length; i++) {
+      const config = filtered[i];
+      const cx = 10 + i * (MOBILE_PANEL_CARD_W + MOBILE_PANEL_CARD_GAP) - scrollOff;
+      const cy = innerY;
+      const inField = fieldIds.includes(config.id);
+
+      ctx.fillStyle = inField ? 'rgba(100,100,100,0.5)' : 'rgba(255,255,255,0.1)';
+      ctx.fillRect(cx, cy, MOBILE_PANEL_CARD_W, MOBILE_PANEL_CARD_H);
+
+      if (!inField) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx, cy, MOBILE_PANEL_CARD_W, MOBILE_PANEL_CARD_H);
+      }
+
+      const imgSize = MOBILE_PANEL_IMG_SIZE;
+      const imgX = cx + (MOBILE_PANEL_CARD_W - imgSize) / 2;
+      const imgY = cy + 4;
+      const image = CharacterImages[config.imageKey];
+
+      if (image && image.complete && image.naturalWidth > 0) {
+        ctx.save();
+        if (inField) ctx.globalAlpha = 0.4;
+        ctx.drawImage(image, imgX, imgY, imgSize, imgSize);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = inField ? '#666' : config.color;
+        ctx.beginPath();
+        ctx.arc(cx + MOBILE_PANEL_CARD_W / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = inField ? '#888' : '#fff';
+      ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(config.name, cx + MOBILE_PANEL_CARD_W / 2, imgY + imgSize + 3);
+    }
+
+    ctx.restore();
+
+    const cardListWidth = filtered.length * (MOBILE_PANEL_CARD_W + MOBILE_PANEL_CARD_GAP);
+    const visibleWidth = CANVAS_SIZE - 20;
+    const maxScroll = Math.max(0, cardListWidth - visibleWidth);
+    if (maxScroll > 0) {
+      const thumbW = Math.max(20, visibleWidth * visibleWidth / Math.max(cardListWidth, visibleWidth));
+      const trackW = visibleWidth - thumbW;
+      const thumbLeft = 10 + (trackW > 0 ? (scrollOff / maxScroll) * trackW : 0);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(10, scrollY, visibleWidth, MOBILE_PANEL_SCROLL_H - 8);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(thumbLeft, scrollY, thumbW, MOBILE_PANEL_SCROLL_H - 8);
+    }
+
+    if (filtered.length === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '13px "Microsoft YaHei", Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('无匹配角色', MOBILE_TOTAL_W / 2, MOBILE_TOP_PANEL_H / 2);
+    }
+  },
+
+  drawCharacterPanels(ctx, panelWidth, totalWidth, fieldCharacters, drag, searchTexts, searchFocusedSide, scrollOffsets) {
+    const fieldIds = fieldCharacters.map(c => c.id);
 
     const panelTop = HEADER_HEIGHT + 10;
 
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : panelWidth + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+      const localSearchText = searchTexts[side] || '';
+      const isFocused = searchFocusedSide === side;
+      const q = localSearchText.toLowerCase();
+      const filtered = q ? CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q)) : CHARACTER_POOL;
 
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(px, HEADER_HEIGHT, panelWidth, CANVAS_SIZE);
 
       const sy = panelTop;
       const searchX = px + (panelWidth - CARD_WIDTH) / 2;
-      ctx.fillStyle = searchFocused ? '#fff' : 'rgba(255,255,255,0.15)';
+      ctx.fillStyle = isFocused ? '#fff' : 'rgba(255,255,255,0.15)';
       ctx.fillRect(searchX, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
-      ctx.strokeStyle = searchFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = searchFocused ? 2 : 1;
+      ctx.strokeStyle = isFocused ? '#FFD700' : 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = isFocused ? 2 : 1;
       ctx.strokeRect(searchX, sy, CARD_WIDTH, SEARCH_BOX_HEIGHT);
 
-      ctx.fillStyle = searchFocused ? '#000' : 'rgba(255,255,255,0.5)';
+      ctx.fillStyle = isFocused ? '#000' : 'rgba(255,255,255,0.5)';
       ctx.font = '16px "Microsoft YaHei", Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const displayText = searchText || '搜索角色...';
+      const displayText = localSearchText || '搜索角色...';
       ctx.fillText(displayText, searchX + CARD_WIDTH / 2, sy + SEARCH_BOX_HEIGHT / 2);
 
-      if (searchFocused) {
-        const tw = ctx.measureText(searchText).width;
+      if (isFocused) {
+        const tw = ctx.measureText(localSearchText).width;
         const cursorX = searchX + CARD_WIDTH / 2 + tw / 2;
         if (Math.floor(Date.now() / 500) % 2 === 0) {
           ctx.fillStyle = '#000';
@@ -610,13 +729,13 @@ const Renderer = {
     } else {
       text = `${characters[0].name}  VS  ${characters[1].name}`;
     }
-    const fontSize = 30;
+    const fontSize = isMobile ? 22 : 30;
     ctx.font = `bold ${fontSize}px "Microsoft YaHei", Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const tx = w / 2;
-    const ty = HEADER_HEIGHT / 2;
+    const tx = isMobile ? CANVAS_SIZE / 2 : w / 2;
+    const ty = isMobile ? MOBILE_FIELD_Y - 18 : HEADER_HEIGHT / 2;
 
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 4;

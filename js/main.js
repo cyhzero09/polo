@@ -8,6 +8,27 @@ const GAME_SIZE = CANVAS_SIZE;
 const GAME_OFFSET_X = PANEL_WIDTH + PANEL_GAP;
 const GAME_OFFSET_Y = HEADER_HEIGHT;
 
+const MOBILE_SEARCH_H = 32;
+const MOBILE_TOP_PANEL_H = 200;
+const MOBILE_BOTTOM_PANEL_H = 50;
+const MOBILE_FOOTER_H = 50;
+const MOBILE_TOTAL_W = CANVAS_SIZE;
+const MOBILE_TOTAL_H = MOBILE_TOP_PANEL_H + CANVAS_SIZE + MOBILE_BOTTOM_PANEL_H + MOBILE_FOOTER_H;
+const MOBILE_FIELD_X = 0;
+const MOBILE_FIELD_Y = MOBILE_TOP_PANEL_H;
+const MOBILE_PANEL_CARD_W = 100;
+const MOBILE_PANEL_CARD_H = 120;
+const MOBILE_PANEL_CARD_GAP = 10;
+const MOBILE_PANEL_IMG_SIZE = 70;
+const MOBILE_PANEL_SCROLL_H = 28;
+const MOBILE_PANEL_INNER_H = MOBILE_TOP_PANEL_H - MOBILE_PANEL_SCROLL_H - MOBILE_SEARCH_H - 12;
+
+let isMobile = false;
+let fieldOffsetX = GAME_OFFSET_X;
+let fieldOffsetY = GAME_OFFSET_Y;
+let currentTotalW = TOTAL_WIDTH;
+let currentTotalH = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
+
 const ORBIT_RADIUS = 200;
 const ORBIT_SPEED = 2;
 
@@ -15,29 +36,98 @@ const SEARCH_BOX_HEIGHT = 36;
 const CARD_HEIGHT = 150;
 const CARD_GAP = 12;
 const CARD_WIDTH = PANEL_WIDTH - 20;
+const SCROLLBAR_HIT_WIDTH = 20;
+const DRAG_THRESHOLD = 8;
 
 const canvas = document.getElementById('game-canvas');
-canvas.width = TOTAL_WIDTH;
-canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
+
+function detectMobile() {
+  const sw = screen.width;
+  const sh = screen.height;
+  return sw < 768 && sw < sh;
+}
+
+isMobile = detectMobile();
+
+function applyLayout() {
+  if (isMobile) {
+    canvas.width = MOBILE_TOTAL_W;
+    canvas.height = MOBILE_TOTAL_H;
+    fieldOffsetX = MOBILE_FIELD_X;
+    fieldOffsetY = MOBILE_FIELD_Y;
+    currentTotalW = MOBILE_TOTAL_W;
+    currentTotalH = MOBILE_TOTAL_H;
+  } else {
+    canvas.width = TOTAL_WIDTH;
+    canvas.height = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
+    fieldOffsetX = GAME_OFFSET_X;
+    fieldOffsetY = GAME_OFFSET_Y;
+    currentTotalW = TOTAL_WIDTH;
+    currentTotalH = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT;
+  }
+}
+
+applyLayout();
 const ctx = canvas.getContext('2d');
 
 function fitCanvas() {
+  const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+  const wasMobile = isMobile;
+  const sw = screen.width;
+  const sh = screen.height;
+  isMobile = sw < 768 && sw < sh;
+
+  if (isMobile !== wasMobile) {
+    const oldFieldX = fieldOffsetX;
+    const oldFieldY = fieldOffsetY;
+    applyLayout();
+    if (isMobile) {
+      Game.mobileScrollOffsets = [0, 0];
+    }
+    if (Game.fieldCharacters.length > 0) {
+      for (const ch of Game.fieldCharacters) {
+        ch.x = ch.x - oldFieldX + fieldOffsetX;
+        ch.y = ch.y - oldFieldY + fieldOffsetY;
+        ch.x = Math.max(fieldOffsetX + ch.radius, Math.min(fieldOffsetX + CANVAS_SIZE - ch.radius, ch.x));
+        ch.y = Math.max(fieldOffsetY + ch.radius, Math.min(fieldOffsetY + CANVAS_SIZE - ch.radius, ch.y));
+      }
+    }
+    for (const proj of Game.projectiles) {
+      if (!proj.alive) continue;
+      proj.x = proj.x - oldFieldX + fieldOffsetX;
+      proj.y = proj.y - oldFieldY + fieldOffsetY;
+    }
+  }
+
   const cw = canvas.width;
   const ch = canvas.height;
   const ratio = cw / ch;
   let cssW, cssH;
-  if (window.innerWidth / window.innerHeight > ratio) {
-    cssH = window.innerHeight;
+  if (vw / vh > ratio) {
+    cssH = vh;
     cssW = cssH * ratio;
   } else {
-    cssW = window.innerWidth;
+    cssW = vw;
     cssH = cssW / ratio;
   }
-  canvas.style.width = Math.floor(cssW) + 'px';
-  canvas.style.height = Math.floor(cssH) + 'px';
+  cssW = Math.floor(Math.min(cssW, vw));
+  cssH = Math.floor(Math.min(cssH, vh));
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+
+  const sil = document.getElementById('search-input-left');
+  const sir = document.getElementById('search-input-right');
+  const offscreenStyles = 'position:absolute;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:none;outline:none;background:transparent;padding:0;margin:0;caret-color:transparent;color:transparent;';
+  if (sil) sil.style.cssText = offscreenStyles;
+  if (sir) sir.style.cssText = offscreenStyles;
 }
 window.addEventListener('resize', fitCanvas);
 window.addEventListener('orientationchange', fitCanvas);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitCanvas);
+}
 fitCanvas();
 
 const BeerSound = new Audio('audio/alababier.mp3');
@@ -269,11 +359,17 @@ const Game = {
   countdown: 0,
   lastTime: 0,
   drag: null,
-  searchText: '',
-  searchFocused: false,
+  searchTexts: ['', ''],
+  searchFocusedSide: -1,
   endingPlayed: false,
   scrollOffsets: [0, 0],
+  mobileScrollOffsets: [0, 0],
   scrollDrag: null,
+  _pendingDrag: null,
+  _pendingDragStart: null,
+
+  getFieldOffsetX() { return fieldOffsetX; },
+  getFieldOffsetY() { return fieldOffsetY; },
 
   init() {
     this.fieldCharacters = [];
@@ -283,15 +379,20 @@ const Game = {
     this.countdown = 0;
     this.lastTime = 0;
     this.drag = null;
-    this.searchText = '';
-    this.searchFocused = false;
+    this.searchTexts = ['', ''];
+    this.searchFocusedSide = -1;
+    if (searchInputLeft) searchInputLeft.value = '';
+    if (searchInputRight) searchInputRight.value = '';
     this.endingPlayed = false;
     this.scrollOffsets = [0, 0];
+    this.mobileScrollOffsets = [0, 0];
     this.scrollDrag = null;
+    this._pendingDrag = null;
+    this._pendingDragStart = null;
   },
 
-  getFilteredPool() {
-    const q = this.searchText.toLowerCase();
+  getFilteredPool(side) {
+    const q = (this.searchTexts[side] || '').toLowerCase();
     if (!q) return CHARACTER_POOL;
     return CHARACTER_POOL.filter(c => c.name.toLowerCase().includes(q));
   },
@@ -301,9 +402,9 @@ const Game = {
     this.state = 'COUNTDOWN';
     this.countdown = 3;
     const sq = 100;
-    const cx0 = GAME_OFFSET_X + CANVAS_SIZE / 4;
-    const cx1 = GAME_OFFSET_X + CANVAS_SIZE * 3 / 4;
-    const cy = GAME_OFFSET_Y + CANVAS_SIZE / 2;
+    const cx0 = fieldOffsetX + CANVAS_SIZE / 4;
+    const cx1 = fieldOffsetX + CANVAS_SIZE * 3 / 4;
+    const cy = fieldOffsetY + CANVAS_SIZE / 2;
     this.fieldCharacters[0].x = cx0 + (Math.random() - 0.5) * sq;
     this.fieldCharacters[0].y = cy + (Math.random() - 0.5) * sq;
     this.fieldCharacters[1].x = cx1 + (Math.random() - 0.5) * sq;
@@ -331,12 +432,29 @@ const Game = {
   },
 
   getPoolIndexAt(mx, my) {
-    const filtered = this.getFilteredPool();
+    if (isMobile) {
+      for (let side = 0; side < 2; side++) {
+        const panelY = side === 0 ? 0 : MOBILE_FIELD_Y + CANVAS_SIZE;
+        const innerY = panelY + MOBILE_SEARCH_H + 8;
+        const innerH = MOBILE_PANEL_INNER_H;
+        if (my < innerY || my > innerY + innerH) continue;
+        const filtered = this.getFilteredPool(side);
+        const scrollOff = this.mobileScrollOffsets[side] || 0;
+        for (let i = 0; i < filtered.length; i++) {
+          const cx = 10 + i * (MOBILE_PANEL_CARD_W + MOBILE_PANEL_CARD_GAP) - scrollOff;
+          if (mx >= cx && mx <= cx + MOBILE_PANEL_CARD_W) {
+            return CHARACTER_POOL.indexOf(filtered[i]);
+          }
+        }
+      }
+      return -1;
+    }
     const panelTop = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
       const panelRight = px + PANEL_WIDTH;
       if (mx < px || mx > panelRight) continue;
+      const filtered = this.getFilteredPool(side);
       for (let i = 0; i < filtered.length; i++) {
         const cy = panelTop + i * (CARD_HEIGHT + CARD_GAP) - this.scrollOffsets[side];
         const cardX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
@@ -351,15 +469,23 @@ const Game = {
   },
 
   getSearchBoxAt(mx, my) {
+    if (isMobile) {
+      const panelY = 0;
+      const searchY = panelY + 4;
+      if (my >= searchY && my <= searchY + MOBILE_SEARCH_H && mx >= 10 && mx <= CANVAS_SIZE - 10) {
+        return 0;
+      }
+      return -1;
+    }
     const sy = HEADER_HEIGHT + 10;
     for (let side = 0; side < 2; side++) {
       const px = side === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
       const searchX = px + (PANEL_WIDTH - CARD_WIDTH) / 2;
       if (mx >= searchX && mx <= searchX + CARD_WIDTH && my >= sy && my <= sy + SEARCH_BOX_HEIGHT) {
-        return true;
+        return side;
       }
     }
-    return false;
+    return -1;
   },
 
   getFieldIndexAt(mx, my) {
@@ -375,18 +501,31 @@ const Game = {
   },
 
   isInField(mx, my) {
-    return mx >= GAME_OFFSET_X && mx <= GAME_OFFSET_X + CANVAS_SIZE &&
-           my >= GAME_OFFSET_Y && my <= GAME_OFFSET_Y + CANVAS_SIZE;
+    return mx >= fieldOffsetX && mx <= fieldOffsetX + CANVAS_SIZE &&
+           my >= fieldOffsetY && my <= fieldOffsetY + CANVAS_SIZE;
   },
 
   isOnPanel(mx) {
+    if (isMobile) return -1;
     if (mx >= 0 && mx <= PANEL_WIDTH) return 0;
     if (mx >= PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP && mx <= TOTAL_WIDTH) return 1;
     return -1;
   },
 
+  isOnMobilePanel(my) {
+    if (!isMobile) return -1;
+    if (my >= 0 && my < MOBILE_FIELD_Y) return 0;
+    if (my >= MOBILE_FIELD_Y + CANVAS_SIZE && my < MOBILE_FIELD_Y + CANVAS_SIZE + MOBILE_BOTTOM_PANEL_H) return 1;
+    return -1;
+  },
+
   getMaxScroll(side) {
-    const filtered = this.getFilteredPool();
+    const filtered = this.getFilteredPool(side);
+    if (isMobile) {
+      const cardListWidth = filtered.length * (MOBILE_PANEL_CARD_W + MOBILE_PANEL_CARD_GAP);
+      const visibleWidth = CANVAS_SIZE - 20;
+      return Math.max(0, cardListWidth - visibleWidth);
+    }
     const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
     const visibleHeight = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
     return Math.max(0, cardListHeight - visibleHeight);
@@ -408,7 +547,7 @@ const Game = {
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
         ch.update(dt);
-        if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0) {
+        if (Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, fieldOffsetX, fieldOffsetY) && ch.collisionSoundCooldown <= 0) {
           ch.collisionSoundCooldown = 0.2;
           CollisionSound.currentTime = 0;
           CollisionSound.play().catch(() => {});
@@ -434,15 +573,15 @@ const Game = {
       }
 
       const result = ch.update(dt);
-      const hitBoundary = Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, GAME_OFFSET_X, GAME_OFFSET_Y) && ch.collisionSoundCooldown <= 0;
+      const hitBoundary = Physics.resolveBoundary(ch, GAME_SIZE, GAME_SIZE, fieldOffsetX, fieldOffsetY) && ch.collisionSoundCooldown <= 0;
       if (hitBoundary) {
         ch.collisionSoundCooldown = 0.2;
         CollisionSound.currentTime = 0;
         CollisionSound.play().catch(() => {});
       }
       if (ch.isDodging && ch.dodgeDir !== 0) {
-        const minX = GAME_OFFSET_X + ch.radius;
-        const maxX = GAME_OFFSET_X + GAME_SIZE - ch.radius;
+        const minX = fieldOffsetX + ch.radius;
+        const maxX = fieldOffsetX + GAME_SIZE - ch.radius;
         if ((ch.dodgeDir > 0 && ch.x >= maxX) || (ch.dodgeDir < 0 && ch.x <= minX)) {
           ch.isDodging = false;
           ch.dodgeAnimTimer = 0;
@@ -538,8 +677,8 @@ const Game = {
           proj.orbitAngle -= ORBIT_SPEED * dt;
           proj.x = proj.orbitingThinker.x + Math.cos(proj.orbitAngle) * ORBIT_RADIUS;
           proj.y = proj.orbitingThinker.y + Math.sin(proj.orbitAngle) * ORBIT_RADIUS;
-          proj.x = Math.max(GAME_OFFSET_X + proj.radius, Math.min(GAME_OFFSET_X + GAME_SIZE - proj.radius, proj.x));
-          proj.y = Math.max(GAME_OFFSET_Y + proj.radius, Math.min(GAME_OFFSET_Y + GAME_SIZE - proj.radius, proj.y));
+          proj.x = Math.max(fieldOffsetX + proj.radius, Math.min(fieldOffsetX + GAME_SIZE - proj.radius, proj.x));
+          proj.y = Math.max(fieldOffsetY + proj.radius, Math.min(fieldOffsetY + GAME_SIZE - proj.radius, proj.y));
           isOrbiting = true;
         }
       }
@@ -574,10 +713,10 @@ const Game = {
 
       if (!isOrbiting) {
         let hitWall = false;
-        if (proj.x - proj.radius < GAME_OFFSET_X) { proj.x = GAME_OFFSET_X + proj.radius; hitWall = true; }
-        if (proj.x + proj.radius > GAME_OFFSET_X + GAME_SIZE) { proj.x = GAME_OFFSET_X + GAME_SIZE - proj.radius; hitWall = true; }
-        if (proj.y - proj.radius < GAME_OFFSET_Y) { proj.y = GAME_OFFSET_Y + proj.radius; hitWall = true; }
-        if (proj.y + proj.radius > GAME_OFFSET_Y + GAME_SIZE) { proj.y = GAME_OFFSET_Y + GAME_SIZE - proj.radius; hitWall = true; }
+        if (proj.x - proj.radius < fieldOffsetX) { proj.x = fieldOffsetX + proj.radius; hitWall = true; }
+        if (proj.x + proj.radius > fieldOffsetX + GAME_SIZE) { proj.x = fieldOffsetX + GAME_SIZE - proj.radius; hitWall = true; }
+        if (proj.y - proj.radius < fieldOffsetY) { proj.y = fieldOffsetY + proj.radius; hitWall = true; }
+        if (proj.y + proj.radius > fieldOffsetY + GAME_SIZE) { proj.y = fieldOffsetY + GAME_SIZE - proj.radius; hitWall = true; }
 
         if (hitWall) {
           if (proj.type === 'briefcase') {
@@ -700,7 +839,7 @@ const Game = {
         }
         endX = hitEnemy.x;
       } else {
-        endX = dir > 0 ? GAME_OFFSET_X + CANVAS_SIZE : GAME_OFFSET_X;
+        endX = dir > 0 ? fieldOffsetX + CANVAS_SIZE : fieldOffsetX;
       }
 
     const ray = createBulletLine(ch.x, ch.y, endX, ch.id);
@@ -836,11 +975,15 @@ const Game = {
   },
 
   render() {
-    Renderer.clear(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
+    Renderer.clear(ctx, currentTotalW, currentTotalH);
     Renderer.drawBorder(ctx, CANVAS_SIZE, CANVAS_SIZE);
 
     if (this.state === 'INIT') {
-      Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchText, this.searchFocused, this.scrollOffsets);
+      if (isMobile) {
+        Renderer.drawMobilePanels(ctx, this.fieldCharacters, this.drag, this.searchTexts, this.searchFocusedSide, this.mobileScrollOffsets);
+      } else {
+        Renderer.drawCharacterPanels(ctx, PANEL_WIDTH, TOTAL_WIDTH, this.fieldCharacters, this.drag, this.searchTexts, this.searchFocusedSide, this.scrollOffsets);
+      }
     }
 
     for (const ch of this.fieldCharacters) {
@@ -863,28 +1006,31 @@ const Game = {
 
     switch (this.state) {
       case 'INIT':
-        UI.drawSelectionScreen(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, this.fieldCharacters);
+        UI.drawSelectionScreen(ctx, currentTotalW, currentTotalH, this.fieldCharacters);
         break;
       case 'COUNTDOWN':
-        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters);
-        UI.drawCountdown(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT, this.countdown);
+        Renderer.drawVSInfo(ctx, currentTotalW, this.fieldCharacters);
+        UI.drawCountdown(ctx, currentTotalW, currentTotalH, this.countdown);
         break;
       case 'PLAYING':
-        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters);
-        UI.drawPauseButton(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
+        Renderer.drawVSInfo(ctx, currentTotalW, this.fieldCharacters);
+        UI.drawPauseButton(ctx, currentTotalW, currentTotalH);
         break;
       case 'PAUSED':
-        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters);
-        UI.drawPausedOverlay(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
+        Renderer.drawVSInfo(ctx, currentTotalW, this.fieldCharacters);
+        UI.drawPausedOverlay(ctx, currentTotalW, currentTotalH);
         break;
       case 'GAME_OVER':
         const winner = this.fieldCharacters.find(c => c.alive) || null;
-        Renderer.drawVSInfo(ctx, TOTAL_WIDTH, this.fieldCharacters, winner);
-        UI.drawRestartHint(ctx, TOTAL_WIDTH, CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT);
+        Renderer.drawVSInfo(ctx, currentTotalW, this.fieldCharacters, winner);
+        UI.drawRestartHint(ctx, currentTotalW, currentTotalH);
         break;
     }
   }
 };
+
+const searchInputLeft = document.getElementById('search-input-left');
+const searchInputRight = document.getElementById('search-input-right');
 
 function gameLoop(timestamp) {
   if (Game.lastTime === 0) {
@@ -900,93 +1046,133 @@ function gameLoop(timestamp) {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
+  if (window._isPinching) return;
   e.preventDefault();
   if (Game.state !== 'INIT') return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
   const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-  if (Game.getSearchBoxAt(mx, my)) {
-    Game.searchFocused = true;
+  Game._pendingDrag = null;
+  Game._pendingDragStart = null;
+
+  // 1. Search box (focus overlay input for mobile keyboard)
+  const searchSide = Game.getSearchBoxAt(mx, my);
+  if (searchSide >= 0) {
+    Game.searchFocusedSide = searchSide;
+    if (searchSide === 0 && searchInputLeft) searchInputLeft.focus();
+    else if (searchSide === 1 && searchInputRight) searchInputRight.focus();
     return;
   }
-  Game.searchFocused = false;
+  Game.searchFocusedSide = -1;
+  if (searchInputLeft) searchInputLeft.blur();
+  if (searchInputRight) searchInputRight.blur();
 
+  // 2. Field character - record pending
   const fieldIdx = Game.getFieldIndexAt(mx, my);
   if (fieldIdx >= 0) {
     const ch = Game.fieldCharacters[fieldIdx];
-    Game.drag = {
+    Game._pendingDrag = {
+      type: 'field',
+      fieldIndex: fieldIdx,
       config: CHARACTER_POOL.find(p => p.id === ch.id),
-      x: mx,
-      y: my,
       offsetX: mx - ch.x,
-      offsetY: my - ch.y,
-      fromField: true,
-      fieldIndex: fieldIdx
+      offsetY: my - ch.y
     };
+    Game._pendingDragStart = { x: mx, y: my };
     return;
   }
 
+  // 3. Pool character card - record pending (before panel scroll)
   const poolIdx = Game.getPoolIndexAt(mx, my);
   if (poolIdx >= 0) {
     if (Game.fieldCharacters.length < 2) {
       const config = CHARACTER_POOL[poolIdx];
       if (!Game.fieldCharacters.some(c => c.id === config.id)) {
-        Game.drag = {
+        Game._pendingDrag = {
+          type: 'pool',
           config: config,
-          x: mx,
-          y: my,
           offsetX: 0,
-          offsetY: 0,
-          fromField: false,
-          fieldIndex: -1
+          offsetY: 0
         };
+        Game._pendingDragStart = { x: mx, y: my };
         return;
       }
     }
   }
 
-  const panelSide = Game.isOnPanel(mx);
-  if (panelSide >= 0) {
-    const px = panelSide === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
-    const sbX = px + PANEL_WIDTH - 8;
-    if (mx >= sbX && mx <= sbX + 6) {
+  // 3. Scrollbar / mobile panel scroll
+  if (isMobile) {
+    const mobilePanelSide = Game.isOnMobilePanel(my);
+    if (mobilePanelSide >= 0) {
+      Game.scrollDrag = { side: mobilePanelSide, startX: mx, startOffset: Game.mobileScrollOffsets[mobilePanelSide] || 0, type: 'mobile-hdrag' };
+      return;
+    }
+  } else {
+    const panelSide = Game.isOnPanel(mx);
+    if (panelSide >= 0) {
+      const px = panelSide === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
       const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
       const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
-      const filtered = Game.getFilteredPool();
-      const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
-      const maxScroll = Game.getMaxScroll(panelSide);
-      const thumbH = Math.max(20, clipH * clipH / Math.max(cardListHeight, clipH));
-      const trackH = clipH - thumbH;
-      const thumbTop = clipY + (trackH > 0 ? (Game.scrollOffsets[panelSide] / Math.max(maxScroll, 1)) * trackH : 0);
-      if (my >= thumbTop && my <= thumbTop + thumbH) {
-        Game.scrollDrag = { side: panelSide, startY: my - thumbTop, type: 'thumb' };
-      } else {
-        const clickRatio = (my - clipY) / clipH;
-        Game.scrollOffsets[panelSide] = Math.max(0, Math.min(maxScroll, clickRatio * maxScroll));
+      const sbLeft = px + PANEL_WIDTH - SCROLLBAR_HIT_WIDTH;
+      const sbRight = px + PANEL_WIDTH;
+      if (my >= clipY && my <= clipY + clipH && mx >= sbLeft && mx <= sbRight) {
+        const filtered = Game.getFilteredPool(panelSide);
+        const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
+        const maxScroll = Game.getMaxScroll(panelSide);
+        const thumbH = Math.max(20, clipH * clipH / Math.max(cardListHeight, clipH));
+        const trackH = clipH - thumbH;
+        const thumbTop = clipY + (trackH > 0 ? (Game.scrollOffsets[panelSide] / Math.max(maxScroll, 1)) * trackH : 0);
+        if (my >= thumbTop && my <= thumbTop + thumbH) {
+          Game.scrollDrag = { side: panelSide, startY: my - thumbTop, type: 'thumb' };
+        } else {
+          const clickRatio = (my - clipY) / clipH;
+          Game.scrollOffsets[panelSide] = Math.max(0, Math.min(maxScroll, clickRatio * maxScroll));
+        }
+        return;
       }
-    } else {
-      Game.scrollDrag = { side: panelSide, startY: my, startOffset: Game.scrollOffsets[panelSide], type: 'drag' };
+    }
+  }
+
+  // 4. Panel background scroll drag (desktop only)
+  if (!isMobile) {
+    const panelSide = Game.isOnPanel(mx);
+    if (panelSide >= 0) {
+      const px = panelSide === 0 ? 0 : PANEL_WIDTH + PANEL_GAP + CANVAS_SIZE + PANEL_GAP;
+      const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
+      const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+      if (my >= clipY && my <= clipY + clipH) {
+        Game.scrollDrag = { side: panelSide, startY: my, startOffset: Game.scrollOffsets[panelSide], type: 'drag' };
+      }
     }
   }
 });
 
 canvas.addEventListener('pointermove', (e) => {
+  if (window._isPinching) return;
   e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+  // Handle active character drag
   if (Game.drag) {
-    const rect = canvas.getBoundingClientRect();
-    Game.drag.x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    Game.drag.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    Game.drag.x = mx;
+    Game.drag.y = my;
+    return;
   }
+
+  // Handle scroll drag
   if (Game.scrollDrag) {
-    const rect = canvas.getBoundingClientRect();
-    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
     const side = Game.scrollDrag.side;
     const maxScroll = Game.getMaxScroll(side);
-    if (Game.scrollDrag.type === 'thumb') {
+    if (Game.scrollDrag.type === 'mobile-hdrag') {
+      Game.mobileScrollOffsets[side] = Math.max(0, Math.min(maxScroll,
+        Game.scrollDrag.startOffset - (mx - Game.scrollDrag.startX)));
+    } else if (Game.scrollDrag.type === 'thumb') {
       const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
       const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
-      const filtered = Game.getFilteredPool();
+      const filtered = Game.getFilteredPool(side);
       const cardListHeight = filtered.length * (CARD_HEIGHT + CARD_GAP);
       const thumbH = Math.max(20, clipH * clipH / Math.max(cardListHeight, clipH));
       const trackH = clipH - thumbH;
@@ -996,11 +1182,61 @@ canvas.addEventListener('pointermove', (e) => {
       Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
         Game.scrollDrag.startOffset + (Game.scrollDrag.startY - my)));
     }
+    return;
+  }
+
+  // Handle pending drag with threshold
+  if (Game._pendingDrag && Game._pendingDragStart) {
+    const dx = mx - Game._pendingDragStart.x;
+    const dy = my - Game._pendingDragStart.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > DRAG_THRESHOLD) {
+      // On panel area: prioritize scroll over drag
+      if (Game._pendingDrag.type !== 'field') {
+        if (isMobile) {
+          const mobilePanelSide = Game.isOnMobilePanel(Game._pendingDragStart.y);
+          if (mobilePanelSide >= 0 && Math.abs(dx) > Math.abs(dy) * 2) {
+            Game.scrollDrag = { side: mobilePanelSide, startX: mx, startOffset: Game.mobileScrollOffsets[mobilePanelSide] || 0, type: 'mobile-hdrag' };
+            Game._pendingDrag = null;
+            Game._pendingDragStart = null;
+            return;
+          }
+        } else {
+          const side = Game.isOnPanel(Game._pendingDragStart.x);
+          if (side >= 0 && Math.abs(dy) > Math.abs(dx) * 2) {
+            const clipY = HEADER_HEIGHT + 10 + SEARCH_BOX_HEIGHT + 10;
+            const clipH = CANVAS_SIZE - SEARCH_BOX_HEIGHT - 20;
+            if (my >= clipY && my <= clipY + clipH) {
+              Game.scrollDrag = { side, startY: my, startOffset: Game.scrollOffsets[side], type: 'drag' };
+              Game._pendingDrag = null;
+              Game._pendingDragStart = null;
+              return;
+            }
+          }
+        }
+      }
+      // Convert pending to actual drag
+      Game.drag = {
+        config: Game._pendingDrag.config,
+        x: mx,
+        y: my,
+        offsetX: Game._pendingDrag.offsetX,
+        offsetY: Game._pendingDrag.offsetY,
+        fromField: Game._pendingDrag.type === 'field',
+        fieldIndex: Game._pendingDrag.type === 'field' ? Game._pendingDrag.fieldIndex : -1
+      };
+      Game._pendingDrag = null;
+      Game._pendingDragStart = null;
+    }
+    return;
   }
 });
 
 canvas.addEventListener('pointerup', (e) => {
+  if (window._isPinching) return;
   e.preventDefault();
+  Game._pendingDrag = null;
+  Game._pendingDragStart = null;
   if (Game.scrollDrag) {
     Game.scrollDrag = null;
     return;
@@ -1071,39 +1307,129 @@ canvas.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-    const btnY = CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT / 2;
-    if (my >= btnY - 25 && my <= btnY + 25 && mx >= GAME_OFFSET_X + CANVAS_SIZE / 2 - 100 && mx <= GAME_OFFSET_X + CANVAS_SIZE / 2 + 100) {
+    const btnY = isMobile ? currentTotalH - MOBILE_FOOTER_H / 2 : CANVAS_SIZE + HEADER_HEIGHT + FOOTER_HEIGHT / 2;
+    if (my >= btnY - 25 && my <= btnY + 25 && mx >= fieldOffsetX + CANVAS_SIZE / 2 - 100 && mx <= fieldOffsetX + CANVAS_SIZE / 2 + 100) {
       Game.start();
     }
   }
 });
 
 canvas.addEventListener('wheel', (e) => {
+  if (e.ctrlKey) {
+    e.preventDefault();
+    const scale = e.deltaY > 0 ? 0.9 : 1.1;
+    const container = document.getElementById('game-container');
+    const current = parseFloat(container.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || '1');
+    const newScale = Math.max(0.5, Math.min(3, current * scale));
+    container.style.transform = `scale(${newScale})`;
+    container.style.transformOrigin = 'center center';
+    return;
+  }
   if (Game.state !== 'INIT') return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const side = Game.isOnPanel(mx);
-  if (side < 0) return;
-  const maxScroll = Game.getMaxScroll(side);
-  Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
-    Game.scrollOffsets[side] + e.deltaY));
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  if (isMobile) {
+    const side = Game.isOnMobilePanel(my);
+    if (side < 0) return;
+    const maxScroll = Game.getMaxScroll(side);
+    Game.mobileScrollOffsets[side] = Math.max(0, Math.min(maxScroll,
+      (Game.mobileScrollOffsets[side] || 0) + e.deltaY));
+  } else {
+    const side = Game.isOnPanel(mx);
+    if (side < 0) return;
+    const maxScroll = Game.getMaxScroll(side);
+    Game.scrollOffsets[side] = Math.max(0, Math.min(maxScroll,
+      Game.scrollOffsets[side] + e.deltaY));
+  }
   e.preventDefault();
 }, { passive: false });
 
+[searchInputLeft, searchInputRight].forEach((el, side) => {
+  el.addEventListener('focus', () => {
+    if (Game.state !== 'INIT') { el.blur(); return; }
+    Game.searchFocusedSide = side;
+  });
+
+  el.addEventListener('input', () => {
+    if (Game.state !== 'INIT') { el.value = ''; return; }
+    Game.searchTexts[side] = el.value;
+  });
+
+  el.addEventListener('blur', () => {
+    if (Game.searchFocusedSide === side) {
+      Game.searchFocusedSide = -1;
+    }
+  });
+
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      el.blur();
+      e.preventDefault();
+    }
+  });
+});
+
 document.addEventListener('keydown', (e) => {
-  if (Game.state !== 'INIT' || !Game.searchFocused) return;
-  if (e.key === 'Backspace') {
-    Game.searchText = Game.searchText.slice(0, -1);
-    e.preventDefault();
-  } else if (e.key === 'Escape') {
-    Game.searchFocused = false;
-  } else if (e.key.length === 1 && e.key.match(/[\u4e00-\u9fa5a-zA-Z0-9]/)) {
-    Game.searchText += e.key;
+  if (e.key === 'Escape' && Game.searchFocusedSide >= 0) {
+    (Game.searchFocusedSide === 0 ? searchInputLeft : searchInputRight).blur();
     e.preventDefault();
   }
 });
 
 canvas.addEventListener('pointercancel', (e) => {
-  if (Game.drag) Game.drag = null;
-  if (Game.scrollDrag) Game.scrollDrag = null;
+  Game.drag = null;
+  Game.scrollDrag = null;
+  Game._pendingDrag = null;
+  Game._pendingDragStart = null;
 });
+
+(function setupPinchZoom() {
+  const container = document.getElementById('game-container');
+  let currentScale = 1;
+  let lastTouchDist = 0;
+  let isPinching = false;
+
+  window._isPinching = false;
+
+  function getDist(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function applyScale(factor) {
+    currentScale = Math.max(0.5, Math.min(3, currentScale * factor));
+    container.style.transform = `scale(${currentScale})`;
+    container.style.transformOrigin = 'center center';
+  }
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      isPinching = true;
+      window._isPinching = true;
+      lastTouchDist = getDist(e.touches[0], e.touches[1]);
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && isPinching) {
+      const dist = getDist(e.touches[0], e.touches[1]);
+      if (lastTouchDist > 0) {
+        const factor = dist / lastTouchDist;
+        applyScale(factor);
+      }
+      lastTouchDist = dist;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) {
+      isPinching = false;
+      window._isPinching = false;
+      lastTouchDist = 0;
+    }
+  });
+})();
