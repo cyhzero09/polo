@@ -314,7 +314,7 @@ const CHARACTER_POOL = [
   },
   {
     id: 5,
-    name: '台灣館長',
+    name: '搞完館長',
     color: '#1a1a1a',
     radius: 75,
     displaySize: 150,
