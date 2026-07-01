@@ -486,6 +486,7 @@ const Game = {
         ch.tankStinkGasTimer = 0;
         ch.tankTissueCooldown = 0;
         ch.tankSnowflakeRequested = false;
+        ch.tankSnowflakeCooldown = 0;
         ch.tankRunSoundTimer = 0;
         ch.tankPantingSoundTimer = 0;
       }
@@ -1199,16 +1200,14 @@ const Game = {
 
     if (ch.tankSnowflakeRequested) {
       ch.tankSnowflakeRequested = false;
+      ch.tankSnowflakeCooldown = 0.5;
       this.projectiles.push(createSnowflakeEffect(ch.x, ch.y, ch.uid));
       IceSound.currentTime = 0;
       IceSound.play().catch(() => {});
     }
   },
 
-  handleTankCollision(c1, c2) {
-    const tank = c1.skillType === 'tank' ? c1 : (c2.skillType === 'tank' ? c2 : null);
-    if (!tank) return;
-    const enemy = tank === c1 ? c2 : c1;
+  applyTankEffectTo(tank, enemy) {
     const key = `${tank.uid}-${enemy.uid}`;
     const now = Date.now();
     if (this.tankCollisionCooldowns[key] && now - this.tankCollisionCooldowns[key] < 500) return;
@@ -1282,6 +1281,17 @@ const Game = {
       this.projectiles.push(createSnowflakeEffect(tank.x, tank.y, tank.uid));
       IceSound.currentTime = 0;
       IceSound.play().catch(() => {});
+    }
+  },
+
+  handleTankCollision(c1, c2) {
+    if (c1.skillType === 'tank' && c2.skillType === 'tank') {
+      this.applyTankEffectTo(c1, c2);
+      this.applyTankEffectTo(c2, c1);
+    } else if (c1.skillType === 'tank') {
+      this.applyTankEffectTo(c1, c2);
+    } else if (c2.skillType === 'tank') {
+      this.applyTankEffectTo(c2, c1);
     }
   },
 

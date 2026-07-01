@@ -84,6 +84,7 @@ class Character {
     this.tankStinkGasTimer = 0;
     this.tankTissueCooldown = 0;
     this.tankSnowflakeRequested = false;
+    this.tankSnowflakeCooldown = 0;
     this.tankSpeedBase = SPEED;
     this.tankRunSoundTimer = 0;
     this.tankPantingSoundTimer = 0;
@@ -103,7 +104,7 @@ class Character {
       this.alive = false;
     }
     this.hitFlashTimer = 0.1;
-    if (this.skillType === 'tank' && this.tankForm === 3) {
+    if (this.skillType === 'tank' && this.tankForm === 3 && this.tankSnowflakeCooldown <= 0) {
       this.tankSnowflakeRequested = true;
     }
     if (!silent && typeof AttackSound !== 'undefined') {
@@ -237,6 +238,9 @@ class Character {
       }
       if (this.tankTissueCooldown > 0) {
         this.tankTissueCooldown -= dt;
+      }
+      if (this.tankSnowflakeCooldown > 0) {
+        this.tankSnowflakeCooldown -= dt;
       }
       this.tankStinkGasTimer += dt;
     }
