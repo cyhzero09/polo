@@ -545,6 +545,60 @@ const Renderer = {
         ctx.textBaseline = 'middle';
         ctx.fillText(ch.name, x, y);
       }
+    } else if (ch.skillType === 'tank') {
+      let baseImg = null;
+      if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
+        baseImg = ch.image;
+      }
+      if (baseImg) {
+        ctx.drawImage(baseImg, x - half, y - half, size, size);
+        Renderer.applyFlash(ctx, ch, baseImg, x - half, y - half, size, size);
+        if (ch.tankForm === 2 && ch.tankOverlay2Image && ch.tankOverlay2Image.complete && ch.tankOverlay2Image.naturalWidth > 0) {
+          const s2 = size / 2;
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          ctx.drawImage(ch.tankOverlay2Image, x - s2 / 2, y - s2 / 2 - size * 0.15, s2, s2);
+          ctx.restore();
+        } else if (ch.tankForm === 3 && ch.tankOverlay3Image && ch.tankOverlay3Image.complete && ch.tankOverlay3Image.naturalWidth > 0) {
+          const s3 = size / 2;
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          ctx.drawImage(ch.tankOverlay3Image, x - s3 / 2, y - s3 / 2 - size * 0.15, s3, s3);
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.shadowColor = ch.color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ch.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const gradient = ctx.createRadialGradient(x - ch.radius * 0.3, y - ch.radius * 0.3, ch.radius * 0.1, x, y, ch.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.restore();
+        if (ch.hitFlashTimer > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, ch.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px "Microsoft YaHei", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch.name, x, y);
+      }
     } else if (ch.image && ch.image.complete && ch.image.naturalWidth > 0) {
       ctx.drawImage(ch.image, x - half, y - half, size, size);
       Renderer.applyFlash(ctx, ch, ch.image, x - half, y - half, size, size);
@@ -600,7 +654,7 @@ const Renderer = {
     const topY = barBottomY - barH - gap;
 
     const ratio = hp / maxHp;
-    const fillColor = hp > 500 ? '#ffffff' : '#ee4444';
+    const fillColor = hp > maxHp * 0.5 ? '#ffffff' : '#ee4444';
 
     const armCenterY = topY + barH / 2;
 
@@ -633,7 +687,7 @@ const Renderer = {
     ctx.fillStyle = fillColor;
     ctx.fillRect(x - barW / 2, topY + barH - fillH, barW, fillH);
 
-    const armFillH = hp >= 666 ? armH : (hp <= 333 ? 0 : armH * (hp - 333) / 333);
+    const armFillH = hp >= maxHp * 0.666 ? armH : (hp <= maxHp * 0.333 ? 0 : armH * (hp - maxHp * 0.333) / (maxHp * 0.333));
     ctx.fillStyle = fillColor;
     ctx.fillRect(x - armW / 2, armCenterY + armH / 2 - armFillH, armW, armFillH);
 
@@ -696,6 +750,57 @@ const Renderer = {
       ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
+    } else if (proj.type === 'stinkgas') {
+      ctx.save();
+      ctx.globalAlpha = proj.alpha;
+      const gradient = ctx.createRadialGradient(proj.x, proj.y, 0, proj.x, proj.y, proj.radius);
+      gradient.addColorStop(0, 'rgba(120, 180, 50, 0.3)');
+      gradient.addColorStop(0.5, 'rgba(150, 200, 50, 0.2)');
+      gradient.addColorStop(0.8, 'rgba(180, 210, 60, 0.1)');
+      gradient.addColorStop(1, 'rgba(200, 220, 80, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120, 180, 50, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    } else if (proj.type === 'tissue') {
+      if (proj.image && proj.image.complete && proj.image.naturalWidth > 0) {
+        const imgW = proj.image.naturalWidth;
+        const imgH = proj.image.naturalHeight;
+        const dw = proj.radius * 2;
+        const dh = (imgH / imgW) * dw;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(proj.rotation);
+        ctx.drawImage(proj.image, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.shadowColor = proj.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = proj.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    } else if (proj.type === 'snowflake') {
+      if (proj.particles) {
+        for (const p of proj.particles) {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     } else {
       ctx.save();
       ctx.shadowColor = proj.color;

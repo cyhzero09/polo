@@ -66,7 +66,7 @@ const Physics = {
       const proj1 = Physics.projectPolygon(verts1, axis);
       const proj2 = Physics.projectPolygon(verts2, axis);
 
-      if (proj1.max < proj2.min || proj2.max < proj1.min) return;
+      if (proj1.max < proj2.min || proj2.max < proj1.min) return false;
 
       const overlap = Math.min(proj1.max - proj2.min, proj2.max - proj1.min);
       if (overlap < minOverlap) {
@@ -75,7 +75,7 @@ const Physics = {
       }
     }
 
-    if (!collisionAxis) return;
+    if (!collisionAxis) return false;
 
     const dx = c2.x - c1.x;
     const dy = c2.y - c1.y;
@@ -97,7 +97,7 @@ const Physics = {
     const dvy = c1.vy - c2.vy;
     const velAlongNormal = dvx * collisionAxis.x + dvy * collisionAxis.y;
 
-    if (velAlongNormal <= 0) return;
+    if (velAlongNormal <= 0) return true;
 
     const impulse = (1 + restitution) * velAlongNormal / 2;
 
@@ -112,6 +112,8 @@ const Physics = {
     c1.vy = (c1.vy / s1) * c1.speed;
     c2.vx = (c2.vx / s2) * c2.speed;
     c2.vy = (c2.vy / s2) * c2.speed;
+
+    return true;
   },
 
   resolveBoundary(entity, w, h, offsetX, offsetY) {

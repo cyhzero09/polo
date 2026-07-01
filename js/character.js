@@ -1,9 +1,16 @@
 const MAX_HP = 1000;
 const SKILL_COOLDOWN = 1500;
 const SPEED = 260;
+const TANK_SLOW_SPEED = 160;
+const TANK_FAST_SPEED = 240;
+const TANK_FORM_SEQUENCE = [5, 15, 5, 15];
+const TANK_FORM_MAP = [1, 2, 1, 3];
+
+let _nextUid = 1;
 
 class Character {
   constructor(config) {
+    this.uid = _nextUid++;
     this.id = config.id;
     this.name = config.name;
     this.x = 0;
@@ -61,11 +68,26 @@ class Character {
     this.heavyPunchImage = config.heavyPunchImage || null;
     this.dodgeImage = config.dodgeImage || null;
 
+    this.tankOverlayImage = config.tankOverlayImage || null;
+    this.tankOverlay2Image = config.tankOverlay2Image || null;
+    this.tankOverlay3Image = config.tankOverlay3Image || null;
+
     this.swayTimer = Math.random() * Math.PI * 2;
     this.swayFreq = 8;
     this.swayAmplitude = 250;
 
     this.stumbleTimer = Math.random() * 0.5 + 0.3;
+
+    this.tankForm = 1;
+    this.tankFormTimer = 0;
+    this.tankFormSeqIndex = 0;
+    this.tankStinkGasTimer = 0;
+    this.tankTissueCooldown = 0;
+    this.tankSnowflakeRequested = false;
+    this.tankSpeedBase = SPEED;
+    this.tankRunSoundTimer = 0;
+    this.tankPantingSoundTimer = 0;
+    this.tankSnotPlayed = false;
 
     const angle = Math.random() * Math.PI * 2;
     this.speed = SPEED;
@@ -81,6 +103,9 @@ class Character {
       this.alive = false;
     }
     this.hitFlashTimer = 0.1;
+    if (this.skillType === 'tank' && this.tankForm === 3) {
+      this.tankSnowflakeRequested = true;
+    }
     if (!silent && typeof AttackSound !== 'undefined') {
       AttackSound.currentTime = 0;
       AttackSound.play().catch(() => {});
@@ -130,8 +155,9 @@ class Character {
       this.knockbackTimer -= dt;
       if (this.knockbackTimer <= 0) {
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
-        this.vx = (this.vx / speed) * SPEED;
-        this.vy = (this.vy / speed) * SPEED;
+        const baseSpeed = this.skillType === 'tank' ? this.tankSpeedBase : SPEED;
+        this.vx = (this.vx / speed) * baseSpeed;
+        this.vy = (this.vy / speed) * baseSpeed;
       }
     }
 
@@ -179,6 +205,40 @@ class Character {
           return 'fire';
         }
       }
+    }
+
+    if (this.skillType === 'tank') {
+      this.tankFormTimer += dt;
+      const currentDuration = TANK_FORM_SEQUENCE[this.tankFormSeqIndex];
+      if (this.tankFormTimer >= currentDuration) {
+        this.tankFormTimer -= currentDuration;
+        this.tankFormSeqIndex = (this.tankFormSeqIndex + 1) % TANK_FORM_SEQUENCE.length;
+        this.tankForm = TANK_FORM_MAP[this.tankFormSeqIndex];
+        if (this.tankForm === 2) {
+          this.tankSpeedBase = TANK_FAST_SPEED;
+          this.tankStinkGasTimer = 0;
+          this.tankRunSoundTimer = 0;
+          this.tankPantingSoundTimer = 0;
+        } else {
+          this.tankSpeedBase = TANK_SLOW_SPEED;
+          this.tankPantingSoundTimer = 0;
+          if (typeof PantingSound !== 'undefined') {
+            PantingSound.pause();
+            PantingSound.currentTime = 0;
+          }
+          if (this.tankForm === 3) {
+            this.tankTissueCooldown = 0;
+          }
+        }
+        const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
+        this.vx = (this.vx / spd) * this.tankSpeedBase;
+        this.vy = (this.vy / spd) * this.tankSpeedBase;
+        this.speed = this.tankSpeedBase;
+      }
+      if (this.tankTissueCooldown > 0) {
+        this.tankTissueCooldown -= dt;
+      }
+      this.tankStinkGasTimer += dt;
     }
 
     this.skillTimer += dt * 1000;

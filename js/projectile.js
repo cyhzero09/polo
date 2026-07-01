@@ -29,6 +29,9 @@ BeerBottleImage.src = 'picture/beer.png';
 const GaowanImage = new Image();
 GaowanImage.src = 'picture/gaowan.png';
 
+const TissueImage = new Image();
+TissueImage.src = 'picture/tissue.png';
+
 class Projectile {
   constructor(config) {
     this.x = config.x;
@@ -60,6 +63,10 @@ class Projectile {
     if (this.type === 'gaowan') {
       const angle = Math.atan2(this.vy, this.vx);
       this.rotation = angle + Math.PI / 2;
+    }
+    if (this.type === 'tissue') {
+      const angle = Math.atan2(this.vy, this.vx);
+      this.rotation = angle;
     }
   }
 }
@@ -198,4 +205,92 @@ function splitBriefcase(briefcase) {
     ));
   }
   return papers;
+}
+
+const TISSUE_SPEED = 350;
+const TISSUE_DAMAGE = 50;
+
+function createTissueProjectile(x, y, dirX, dirY, ownerId) {
+  const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+  return new Projectile({
+    x, y,
+    vx: (dirX / len) * TISSUE_SPEED,
+    vy: (dirY / len) * TISSUE_SPEED,
+    damage: TISSUE_DAMAGE,
+    ownerId,
+    type: 'tissue',
+    radius: 30,
+    color: '#8B7355',
+    image: TissueImage
+  });
+}
+
+const SNOWFLAKE_DAMAGE = 20;
+const SNOWFLAKE_RADIUS = 200;
+const SNOWFLAKE_DURATION = 1;
+
+const STINK_GAS_VISUAL_DURATION = 1.2;
+const STINK_GAS_VISUAL_MAX_RADIUS = 400;
+
+function createStinkGasVisual(x, y, ownerId) {
+  return {
+    x, y,
+    radius: 0,
+    maxRadius: STINK_GAS_VISUAL_MAX_RADIUS,
+    expandSpeed: 400,
+    ownerId,
+    type: 'stinkgas',
+    alive: true,
+    alpha: 0.5,
+    life: STINK_GAS_VISUAL_DURATION,
+    update(dt) {
+      this.life -= dt;
+      if (this.life <= 0) {
+        this.alive = false;
+        return;
+      }
+      const progress = 1 - this.life / STINK_GAS_VISUAL_DURATION;
+      this.radius = this.maxRadius * Math.min(1, progress / 0.4);
+      this.alpha = 0.5 * (1 - progress);
+    }
+  };
+}
+
+function createSnowflakeEffect(x, y, ownerId) {
+  const particleCount = 20;
+  const particles = [];
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.3;
+    const speed = 80 + Math.random() * 120;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: 2 + Math.random() * 3,
+      alpha: 1
+    });
+  }
+  return {
+    x, y,
+    radius: SNOWFLAKE_RADIUS,
+    damage: SNOWFLAKE_DAMAGE,
+    ownerId,
+    type: 'snowflake',
+    alive: true,
+    hitTargets: new Set(),
+    life: SNOWFLAKE_DURATION,
+    particles,
+    update(dt) {
+      this.life -= dt;
+      if (this.life <= 0) {
+        this.alive = false;
+      }
+      const progress = 1 - this.life / SNOWFLAKE_DURATION;
+      for (const p of this.particles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha = Math.max(0, 1 - progress);
+      }
+    }
+  };
 }

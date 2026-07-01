@@ -143,6 +143,16 @@ CollisionSound.volume = 0.4;
 const HeavyPunchSound = new Audio('audio/heavypunch.mp3');
 const LightPunchSound = new Audio('audio/lightpunch.mp3');
 const MissSound = new Audio('audio/miss.mp3');
+const RunSound = new Audio('audio/run.mp3');
+RunSound.volume = 0.4;
+const PantingSound = new Audio('audio/panting.mp3');
+PantingSound.volume = 0.5;
+const SnotSound = new Audio('audio/snot.mp3');
+SnotSound.volume = 0.5;
+const IceSound = new Audio('audio/ice.mp3');
+IceSound.volume = 0;
+const CuteCollisionSound = new Audio('audio/cutecollision.mp3');
+CuteCollisionSound.volume = 0.5;
 
 function tryDodge(ch) {
   if (ch.skillType === 'boxer' && !ch.isDodging && Math.random() < ch.dodgeChance) {
@@ -176,12 +186,17 @@ const CharacterImages = {
   boxer_heavypunch: null,
   boxer_miss: null,
   thinker: null,
+  tank: null,
+  tank1: null,
+  tank2: null,
+  tank3: null,
+  tissue1: null,
   loaded: false
 };
 
 (function loadImages() {
   let loaded = 0;
-  const total = 23;
+  const total = 28;
   function checkAllLoaded() {
     loaded++;
     if (loaded < total) return;
@@ -267,6 +282,31 @@ const CharacterImages = {
   thinkerImg.src = 'picture/thinking.png';
   thinkerImg.onload = () => { CharacterImages.thinker = thinkerImg; checkAllLoaded(); };
   thinkerImg.onerror = () => { checkAllLoaded(); };
+
+  const tankImg = new Image();
+  tankImg.src = 'picture/tank.png';
+  tankImg.onload = () => { CharacterImages.tank = tankImg; checkAllLoaded(); };
+  tankImg.onerror = () => { checkAllLoaded(); };
+
+  const tank1Img = new Image();
+  tank1Img.src = 'picture/tank1.png';
+  tank1Img.onload = () => { CharacterImages.tank1 = tank1Img; checkAllLoaded(); };
+  tank1Img.onerror = () => { checkAllLoaded(); };
+
+  const tank2Img = new Image();
+  tank2Img.src = 'picture/tank2.png';
+  tank2Img.onload = () => { CharacterImages.tank2 = tank2Img; checkAllLoaded(); };
+  tank2Img.onerror = () => { checkAllLoaded(); };
+
+  const tank3Img = new Image();
+  tank3Img.src = 'picture/tank3.png';
+  tank3Img.onload = () => { CharacterImages.tank3 = tank3Img; checkAllLoaded(); };
+  tank3Img.onerror = () => { checkAllLoaded(); };
+
+  const tissue1Img = new Image();
+  tissue1Img.src = 'picture/tissue1.jpg';
+  tissue1Img.onload = () => { CharacterImages.tissue1 = tissue1Img; checkAllLoaded(); };
+  tissue1Img.onerror = () => { checkAllLoaded(); };
 })();
 
 const CHARACTER_POOL = [
@@ -348,6 +388,20 @@ const CHARACTER_POOL = [
     octagonRadius: 80,
     skillType: 'thinker',
     imageKey: 'thinker'
+  },
+  {
+    id: 8,
+    name: '肥美坦克',
+    color: '#556B2F',
+    radius: 85,
+    displaySize: 170,
+    octagonRadius: 90,
+    skillType: 'tank',
+    maxHp: 1500,
+    imageKey: 'tank',
+    tankOverlay1Key: 'tank1',
+    tankOverlay2Key: 'tank2',
+    tankOverlay3Key: 'tank3'
   }
 ];
 
@@ -367,6 +421,9 @@ const Game = {
   scrollDrag: null,
   _pendingDrag: null,
   _pendingDragStart: null,
+  tankStinkDebuffs: [],
+  tankHealOverlays: [],
+  tankCollisionCooldowns: {},
 
   getFieldOffsetX() { return fieldOffsetX; },
   getFieldOffsetY() { return fieldOffsetY; },
@@ -389,6 +446,9 @@ const Game = {
     this.scrollDrag = null;
     this._pendingDrag = null;
     this._pendingDragStart = null;
+    this.tankStinkDebuffs = [];
+    this.tankHealOverlays = [];
+    this.tankCollisionCooldowns = {};
   },
 
   getFilteredPool(side) {
@@ -411,10 +471,23 @@ const Game = {
     this.fieldCharacters[1].y = cy + (Math.random() - 0.5) * sq;
     for (const ch of this.fieldCharacters) {
       const angle = Math.random() * Math.PI * 2;
-      ch.vx = Math.cos(angle) * SPEED;
-      ch.vy = Math.sin(angle) * SPEED;
+      const charSpeed = ch.skillType === 'tank' ? TANK_SLOW_SPEED : SPEED;
+      ch.vx = Math.cos(angle) * charSpeed;
+      ch.vy = Math.sin(angle) * charSpeed;
+      ch.speed = charSpeed;
       if (ch.skillType === 'bullet') {
         ch.burstCooldownTimer = ch.burstCooldown;
+      }
+      if (ch.skillType === 'tank') {
+        ch.tankForm = 1;
+        ch.tankFormTimer = 0;
+        ch.tankFormSeqIndex = 0;
+        ch.tankSpeedBase = TANK_SLOW_SPEED;
+        ch.tankStinkGasTimer = 0;
+        ch.tankTissueCooldown = 0;
+        ch.tankSnowflakeRequested = false;
+        ch.tankRunSoundTimer = 0;
+        ch.tankPantingSoundTimer = 0;
       }
     }
   },
@@ -426,6 +499,8 @@ const Game = {
   togglePause() {
     if (this.state === 'PLAYING') {
       this.state = 'PAUSED';
+      PantingSound.pause();
+      PantingSound.currentTime = 0;
     } else if (this.state === 'PAUSED') {
       this.state = 'PLAYING';
     }
@@ -567,6 +642,14 @@ const Game = {
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
 
+      if (ch.skillType === 'tank') {
+        if (ch.tankForm === 2) {
+          ch.speed = TANK_FAST_SPEED;
+        } else {
+          ch.speed = TANK_SLOW_SPEED;
+        }
+      }
+
       if (ch.skillType === 'boxer' && ch.isPaused) {
         ch.vx = 0;
         ch.vy = 0;
@@ -611,6 +694,8 @@ const Game = {
         }
       } else if (ch.skillType === 'thinker') {
         // no-op: orbit is handled separately
+      } else if (ch.skillType === 'tank') {
+        this.updateTank(ch, dt);
       } else {
         if (ch.skillTimer >= ch.skillCooldown) {
           this.fireSkill(ch);
@@ -624,7 +709,10 @@ const Game = {
         const c1 = this.fieldCharacters[i];
         const c2 = this.fieldCharacters[j];
         if (!c1.alive || !c2.alive) continue;
-        Physics.resolveCharacterCollision(c1, c2);
+        const collided = Physics.resolveCharacterCollision(c1, c2);
+        if (collided) {
+          this.handleTankCollision(c1, c2);
+        }
       }
     }
 
@@ -633,17 +721,18 @@ const Game = {
       proj.update(dt);
 
       if (proj.type === 'bullet') continue;
+      if (proj.type === 'stinkgas') continue;
 
-      if (proj.type === 'shockwave') {
+      if (proj.type === 'snowflake') {
         for (const ch of this.fieldCharacters) {
-          if (!ch.alive || ch.id === proj.ownerId) continue;
-          if (proj.hitTargets.has(ch.id)) continue;
+          if (!ch.alive || ch.uid === proj.ownerId) continue;
+          if (proj.hitTargets.has(ch.uid)) continue;
           if (Physics.dist(proj.x, proj.y, ch.x, ch.y) < proj.radius) {
             if (tryDodge(ch)) continue;
             ch.takeDamage(proj.damage);
-            proj.hitTargets.add(ch.id);
+            proj.hitTargets.add(ch.uid);
             const existing = this.floatingTexts.find(ft =>
-              ft.targetId === ch.id && ft.life > 0.85
+              ft.targetId === ch.uid && ft.life > 0.85
             );
             if (existing) {
               existing.totalDmg += proj.damage;
@@ -658,7 +747,40 @@ const Game = {
                 vx: (Math.random() - 0.5) * 60,
                 vy: -40 - Math.random() * 30,
                 life: 1,
-                targetId: ch.id,
+                targetId: ch.uid,
+                totalDmg: proj.damage
+              });
+            }
+          }
+        }
+        continue;
+      }
+
+      if (proj.type === 'shockwave') {
+        for (const ch of this.fieldCharacters) {
+          if (!ch.alive || ch.uid === proj.ownerId) continue;
+          if (proj.hitTargets.has(ch.uid)) continue;
+          if (Physics.dist(proj.x, proj.y, ch.x, ch.y) < proj.radius) {
+            if (tryDodge(ch)) continue;
+            ch.takeDamage(proj.damage);
+            proj.hitTargets.add(ch.uid);
+            const existing = this.floatingTexts.find(ft =>
+              ft.targetId === ch.uid && ft.life > 0.85
+            );
+            if (existing) {
+              existing.totalDmg += proj.damage;
+              existing.text = `-${existing.totalDmg}`;
+              existing.life = 1;
+            } else {
+              this.floatingTexts.push({
+                x: ch.x + (Math.random() - 0.5) * 40,
+                y: ch.y - ch.radius - 10,
+                text: `-${proj.damage}`,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 60,
+                vy: -40 - Math.random() * 30,
+                life: 1,
+                targetId: ch.uid,
                 totalDmg: proj.damage
               });
             }
@@ -687,10 +809,10 @@ const Game = {
         if (!proj._prevOrbitDist) proj._prevOrbitDist = {};
         for (const ch of this.fieldCharacters) {
           if (!ch.alive || ch.skillType !== 'thinker') continue;
-          if (ch.id === proj.ownerId) continue;
+          if (ch.uid === proj.ownerId) continue;
 
           const dist = Math.sqrt((proj.x - ch.x) ** 2 + (proj.y - ch.y) ** 2);
-          const prevDist = proj._prevOrbitDist[ch.id];
+          const prevDist = proj._prevOrbitDist[ch.uid];
 
           if (prevDist !== undefined) {
             const crossedIn = prevDist >= ORBIT_RADIUS && dist < ORBIT_RADIUS;
@@ -707,7 +829,7 @@ const Game = {
             }
           }
 
-          proj._prevOrbitDist[ch.id] = dist;
+          proj._prevOrbitDist[ch.uid] = dist;
         }
       }
 
@@ -730,7 +852,7 @@ const Game = {
 
       if (proj.type === 'briefcase' && proj._inContact) {
         for (const chId of proj._inContact) {
-          const ch = this.fieldCharacters.find(c => c.id === chId);
+          const ch = this.fieldCharacters.find(c => c.uid === chId);
           if (!ch || !ch.alive || !Physics.isCircleOctagonColliding(proj, ch)) {
             proj._inContact.delete(chId);
           }
@@ -739,8 +861,8 @@ const Game = {
 
       for (const ch of this.fieldCharacters) {
         if (!ch.alive) continue;
-        if (ch.id === proj.ownerId && (!isOrbiting || proj.age < 1)) continue;
-        if (proj._inContact && proj._inContact.has(ch.id)) continue;
+        if (ch.uid === proj.ownerId && (!isOrbiting || proj.age < 1)) continue;
+        if (proj._inContact && proj._inContact.has(ch.uid)) continue;
 
           if (Physics.isCircleOctagonColliding(proj, ch)) {
             if (tryDodge(ch)) {
@@ -748,9 +870,9 @@ const Game = {
               break;
             }
             ch.takeDamage(proj.damage);
-            if (proj._inContact) proj._inContact.add(ch.id);
+            if (proj._inContact) proj._inContact.add(ch.uid);
             const existing = this.floatingTexts.find(ft =>
-              ft.targetId === ch.id && ft.life > 0.85
+              ft.targetId === ch.uid && ft.life > 0.85
             );
             if (existing) {
               existing.totalDmg += proj.damage;
@@ -765,7 +887,7 @@ const Game = {
                 vx: (Math.random() - 0.5) * 60,
                 vy: -40 - Math.random() * 30,
                 life: 1,
-                targetId: ch.id,
+                targetId: ch.uid,
                 totalDmg: proj.damage
               });
             }
@@ -778,6 +900,52 @@ const Game = {
     }
 
     this.projectiles = this.projectiles.filter(p => p.alive);
+
+    for (let i = this.tankStinkDebuffs.length - 1; i >= 0; i--) {
+      const debuff = this.tankStinkDebuffs[i];
+      const target = this.fieldCharacters.find(c => c.uid === debuff.targetId);
+      if (!target || !target.alive || !debuff.sourceTank || !debuff.sourceTank.alive) {
+        this.tankStinkDebuffs.splice(i, 1);
+        continue;
+      }
+      debuff.timer -= dt;
+      debuff.tickTimer -= dt;
+      if (debuff.tickTimer <= 0) {
+        debuff.tickTimer += 1;
+        target.takeDamage(20, true);
+        const existing = this.floatingTexts.find(ft =>
+          ft.targetId === target.uid && ft.life > 0.85
+        );
+        if (existing) {
+          existing.totalDmg += 20;
+          existing.text = `-${existing.totalDmg}`;
+          existing.life = 1;
+        } else {
+          this.floatingTexts.push({
+            x: target.x + (Math.random() - 0.5) * 40,
+            y: target.y - target.radius - 10,
+            text: `-20`,
+            alpha: 1,
+            vx: (Math.random() - 0.5) * 60,
+            vy: -40 - Math.random() * 30,
+            life: 1,
+            targetId: target.uid,
+            totalDmg: 20
+          });
+        }
+      }
+      if (debuff.timer <= 0) {
+        this.tankStinkDebuffs.splice(i, 1);
+      }
+    }
+
+    for (let i = this.tankHealOverlays.length - 1; i >= 0; i--) {
+      const overlay = this.tankHealOverlays[i];
+      overlay.timer -= dt;
+      if (overlay.timer <= 0) {
+        this.tankHealOverlays.splice(i, 1);
+      }
+    }
 
     for (const ft of this.floatingTexts) {
       ft.life -= dt;
@@ -805,7 +973,7 @@ const Game = {
     let hitEnemy = null;
 
     for (const other of this.fieldCharacters) {
-      if (!other.alive || other.id === ch.id) continue;
+      if (!other.alive || other.uid === ch.uid) continue;
       const half = other.displaySize / 2;
       if (ch.y >= other.y - half && ch.y <= other.y + half) {
         hitEnemy = other;
@@ -817,7 +985,7 @@ const Game = {
         if (!tryDodge(hitEnemy)) {
           hitEnemy.takeDamage(BULLET_DAMAGE);
           const existing = this.floatingTexts.find(ft =>
-            ft.targetId === hitEnemy.id && ft.life > 0.7
+            ft.targetId === hitEnemy.uid && ft.life > 0.7
           );
           if (existing) {
             existing.totalDmg += BULLET_DAMAGE;
@@ -832,7 +1000,7 @@ const Game = {
               vx: (Math.random() - 0.5) * 60,
               vy: -40 - Math.random() * 30,
               life: 1,
-              targetId: hitEnemy.id,
+              targetId: hitEnemy.uid,
               totalDmg: BULLET_DAMAGE
             });
           }
@@ -842,7 +1010,7 @@ const Game = {
         endX = dir > 0 ? fieldOffsetX + CANVAS_SIZE : fieldOffsetX;
       }
 
-    const ray = createBulletLine(ch.x, ch.y, endX, ch.id);
+    const ray = createBulletLine(ch.x, ch.y, endX, ch.uid);
     this.projectiles.push(ray);
   },
 
@@ -854,17 +1022,17 @@ const Game = {
     let proj = null;
     switch (ch.skillType) {
       case 'nail':
-        proj = createNail(ch.x, ch.y, dx, dy, ch.id);
+        proj = createNail(ch.x, ch.y, dx, dy, ch.uid);
         YahuSound.currentTime = 0;
         YahuSound.play().catch(() => {});
         break;
       case 'briefcase':
-        proj = createBriefcase(ch.x, ch.y, dx, dy, ch.id);
+        proj = createBriefcase(ch.x, ch.y, dx, dy, ch.uid);
         ShuaKaSound.currentTime = 0;
         ShuaKaSound.play().catch(() => {});
         break;
       case 'beer':
-        proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.id);
+        proj = createBeerBottle(ch.x, ch.y, dx, dy, ch.uid);
         BeerSound.currentTime = 0;
         BeerSound.play().catch(() => {});
         break;
@@ -874,8 +1042,8 @@ const Game = {
         ch.facingRight = dx >= 0;
         GaowanSound.currentTime = 0;
         GaowanSound.play().catch(() => {});
-        this.projectiles.push(createShockwave(ch.x, ch.y, ch.id));
-        proj = createGaowan(ch.x, ch.y, dx, dy, ch.id);
+        this.projectiles.push(createShockwave(ch.x, ch.y, ch.uid));
+        proj = createGaowan(ch.x, ch.y, dx, dy, ch.uid);
         break;
     }
     if (proj) {
@@ -952,7 +1120,7 @@ const Game = {
       ch.punchAnimTimer = 0.1;
 
       const existing = this.floatingTexts.find(ft =>
-        ft.targetId === enemy.id && ft.life > 0.85
+        ft.targetId === enemy.uid && ft.life > 0.85
       );
       if (existing) {
         existing.totalDmg += dmg;
@@ -967,10 +1135,153 @@ const Game = {
           vx: (Math.random() - 0.5) * 60,
           vy: -40 - Math.random() * 30,
           life: 1,
-          targetId: enemy.id,
+          targetId: enemy.uid,
           totalDmg: dmg
         });
       }
+    }
+  },
+
+  updateTank(ch, dt) {
+    if (ch.tankForm === 2) {
+      if (ch.tankStinkGasTimer >= 1) {
+        ch.tankStinkGasTimer -= 1;
+        this.projectiles.push(createStinkGasVisual(ch.x, ch.y, ch.uid));
+        for (const enemy of this.fieldCharacters) {
+          if (!enemy.alive || enemy.uid === ch.uid) continue;
+          const dist = Physics.dist(ch.x, ch.y, enemy.x, enemy.y);
+          let dmg = 0;
+          if (dist <= 200) dmg = 50;
+          else if (dist <= 300) dmg = 20;
+          else if (dist <= 400) dmg = 10;
+          if (dmg > 0) {
+            enemy.takeDamage(dmg, true);
+            const existing = this.floatingTexts.find(ft =>
+              ft.targetId === enemy.uid && ft.life > 0.85
+            );
+            if (existing) {
+              existing.totalDmg += dmg;
+              existing.text = `-${existing.totalDmg}`;
+              existing.life = 1;
+            } else {
+              this.floatingTexts.push({
+                x: enemy.x + (Math.random() - 0.5) * 40,
+                y: enemy.y - enemy.radius - 10,
+                text: `-${dmg}`,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 60,
+                vy: -40 - Math.random() * 30,
+                life: 1,
+                targetId: enemy.uid,
+                totalDmg: dmg
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (ch.tankForm === 3) {
+      const enemy = ch.findNearestEnemy(this.fieldCharacters);
+      if (enemy && enemy.alive && ch.tankTissueCooldown <= 0) {
+        const dist = Physics.dist(ch.x, ch.y, enemy.x, enemy.y);
+        if (dist < 250) {
+          SnotSound.currentTime = 0;
+          SnotSound.play().catch(() => {});
+          const dx = enemy.x - ch.x;
+          const dy = enemy.y - ch.y;
+          const proj = createTissueProjectile(ch.x, ch.y, dx, dy, ch.uid);
+          this.projectiles.push(proj);
+          ch.tankTissueCooldown = 3;
+        }
+      }
+    }
+
+    if (ch.tankSnowflakeRequested) {
+      ch.tankSnowflakeRequested = false;
+      this.projectiles.push(createSnowflakeEffect(ch.x, ch.y, ch.uid));
+      IceSound.currentTime = 0;
+      IceSound.play().catch(() => {});
+    }
+  },
+
+  handleTankCollision(c1, c2) {
+    const tank = c1.skillType === 'tank' ? c1 : (c2.skillType === 'tank' ? c2 : null);
+    if (!tank) return;
+    const enemy = tank === c1 ? c2 : c1;
+    const key = `${tank.uid}-${enemy.uid}`;
+    const now = Date.now();
+    if (this.tankCollisionCooldowns[key] && now - this.tankCollisionCooldowns[key] < 500) return;
+    this.tankCollisionCooldowns[key] = now;
+
+    if (tank.tankForm === 1) {
+      CuteCollisionSound.currentTime = 0;
+      CuteCollisionSound.play().catch(() => {});
+      enemy.hp = Math.min(enemy.maxHp, enemy.hp + 10);
+      const existing = this.tankHealOverlays.find(o => o.targetId === enemy.uid);
+      if (existing) {
+        existing.timer = 1;
+      } else {
+        this.tankHealOverlays.push({ targetId: enemy.uid, timer: 1 });
+      }
+      const existingTxt = this.floatingTexts.find(ft =>
+        ft.targetId === enemy.uid && ft.life > 0.85
+      );
+      if (existingTxt) {
+        existingTxt.totalDmg -= 10;
+        existingTxt.text = `+${Math.abs(existingTxt.totalDmg)}`;
+        existingTxt.life = 1;
+      } else {
+        this.floatingTexts.push({
+          x: enemy.x + (Math.random() - 0.5) * 40,
+          y: enemy.y - enemy.radius - 10,
+          text: '+10',
+          alpha: 1,
+          vx: (Math.random() - 0.5) * 60,
+          vy: -40 - Math.random() * 30,
+          life: 1,
+          targetId: enemy.uid,
+          totalDmg: -10
+        });
+      }
+    } else if (tank.tankForm === 2) {
+      const existing = this.tankStinkDebuffs.find(d => d.targetId === enemy.uid);
+      if (existing) {
+        enemy.takeDamage(10, true);
+        const existingTxt = this.floatingTexts.find(ft =>
+          ft.targetId === enemy.uid && ft.life > 0.85
+        );
+        if (existingTxt) {
+          existingTxt.totalDmg += 10;
+          existingTxt.text = `-${existingTxt.totalDmg}`;
+          existingTxt.life = 1;
+        } else {
+          this.floatingTexts.push({
+            x: enemy.x + (Math.random() - 0.5) * 40,
+            y: enemy.y - enemy.radius - 10,
+            text: `-10`,
+            alpha: 1,
+            vx: (Math.random() - 0.5) * 60,
+            vy: -40 - Math.random() * 30,
+            life: 1,
+            targetId: enemy.uid,
+            totalDmg: 10
+          });
+        }
+        existing.timer = 5;
+        existing.tickTimer = 0;
+      } else {
+        this.tankStinkDebuffs.push({
+          targetId: enemy.uid,
+          sourceTank: tank,
+          timer: 5,
+          tickTimer: 1
+        });
+      }
+    } else if (tank.tankForm === 3) {
+      this.projectiles.push(createSnowflakeEffect(tank.x, tank.y, tank.uid));
+      IceSound.currentTime = 0;
+      IceSound.play().catch(() => {});
     }
   },
 
@@ -989,6 +1300,60 @@ const Game = {
     for (const ch of this.fieldCharacters) {
       if (!ch.alive) continue;
       Renderer.drawCharacter(ctx, ch);
+    }
+
+    for (const overlay of this.tankHealOverlays) {
+      const ch = this.fieldCharacters.find(c => c.uid === overlay.targetId);
+      if (!ch || !ch.alive) continue;
+      const tankChar = this.fieldCharacters.find(c => c.skillType === 'tank');
+      if (!tankChar || !tankChar.tankOverlayImage) continue;
+      const img = tankChar.tankOverlayImage;
+      if (img && img.complete && img.naturalWidth > 0) {
+        const alpha = Math.min(1, overlay.timer);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const size = ch.displaySize;
+        const half = size / 2;
+        ctx.drawImage(img, ch.x - half, ch.y - half, size, size);
+        ctx.restore();
+      }
+    }
+
+    for (const debuff of this.tankStinkDebuffs) {
+      const ch = this.fieldCharacters.find(c => c.uid === debuff.targetId);
+      if (!ch || !ch.alive) continue;
+      if (!debuff.droplets) {
+        debuff.droplets = [];
+        for (let i = 0; i < 8; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = ch.radius * (0.6 + Math.random() * 0.5);
+          debuff.droplets.push({
+            offsetX: Math.cos(angle) * dist,
+            offsetY: Math.sin(angle) * dist - ch.radius * 0.3,
+            r: 3 + Math.random() * 4,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+      const t = performance.now() / 1000;
+      ctx.save();
+      const alpha = Math.min(0.7, debuff.timer / 5 * 0.7);
+      ctx.globalAlpha = alpha;
+      for (const d of debuff.droplets) {
+        const dx = d.offsetX + Math.sin(t * 2 + d.phase) * 3;
+        const dy = d.offsetY + Math.cos(t * 1.5 + d.phase) * 2;
+        ctx.beginPath();
+        ctx.arc(ch.x + dx, ch.y + dy, d.r, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(
+          ch.x + dx, ch.y + dy - d.r * 0.3, 0,
+          ch.x + dx, ch.y + dy, d.r
+        );
+        gradient.addColorStop(0, 'rgba(140, 220, 50, 0.8)');
+        gradient.addColorStop(1, 'rgba(80, 160, 20, 0.4)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     for (const proj of this.projectiles) {
@@ -1088,7 +1453,8 @@ canvas.addEventListener('pointerdown', (e) => {
   if (poolIdx >= 0) {
     if (Game.fieldCharacters.length < 2) {
       const config = CHARACTER_POOL[poolIdx];
-      if (!Game.fieldCharacters.some(c => c.id === config.id)) {
+      const sameCount = Game.fieldCharacters.filter(c => c.id === config.id).length;
+      if (sameCount < 2) {
         Game._pendingDrag = {
           type: 'pool',
           config: config,
@@ -1270,6 +1636,10 @@ canvas.addEventListener('pointerup', (e) => {
       const uppercutImage = config.uppercutImageKey ? CharacterImages[config.uppercutImageKey] : null;
       const heavyPunchImage = config.heavyPunchImageKey ? CharacterImages[config.heavyPunchImageKey] : null;
       const dodgeImage = config.dodgeImageKey ? CharacterImages[config.dodgeImageKey] : null;
+      const tankOverlayImage = config.tankOverlay1Key ? CharacterImages[config.tankOverlay1Key] : null;
+      const tankOverlay2Image = config.tankOverlay2Key ? CharacterImages[config.tankOverlay2Key] : null;
+      const tankOverlay3Image = config.tankOverlay3Key ? CharacterImages[config.tankOverlay3Key] : null;
+      const maxHp = config.maxHp || undefined;
       const ch = new Character({
         id: config.id,
         name: config.name,
@@ -1279,6 +1649,7 @@ canvas.addEventListener('pointerup', (e) => {
         octagonRadius: config.octagonRadius,
         skillType: config.skillType,
         skillCooldown: config.skillCooldown,
+        maxHp: maxHp,
         image: image,
         animFrames: animFrames,
         shootingImage: shootingImage,
@@ -1286,7 +1657,10 @@ canvas.addEventListener('pointerup', (e) => {
         handImage: handImage,
         uppercutImage: uppercutImage,
         heavyPunchImage: heavyPunchImage,
-        dodgeImage: dodgeImage
+        dodgeImage: dodgeImage,
+        tankOverlayImage: tankOverlayImage,
+        tankOverlay2Image: tankOverlay2Image,
+        tankOverlay3Image: tankOverlay3Image
       });
       ch.x = mx;
       ch.y = my;
